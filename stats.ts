@@ -15,14 +15,25 @@ export interface PlayerStats {
 export const playerStatsMap = new Map<string, PlayerStats>();
 
 /**
- * Ranking thresholds based on number of wins
+ * Ranking thresholds based on number of wins with divisions and colors
  */
 export const RANKS = [
-    { name: "Bronze", minWins: 0, maxWins: 10 },
-    { name: "Silver", minWins: 11, maxWins: 25 },
-    { name: "Gold", minWins: 26, maxWins: 50 },
-    { name: "Platinum", minWins: 51, maxWins: 80 },
-    { name: "Diamond", minWins: 81, maxWins: Infinity }
+    { name: "Unranked", minWins: 0, maxWins: 0, color: 0xFFFFFF },
+    { name: "Bronze I", minWins: 1, maxWins: 5, color: 0xCD7F32 },
+    { name: "Bronze II", minWins: 6, maxWins: 10, color: 0xCD7F32 },
+    { name: "Bronze III", minWins: 11, maxWins: 15, color: 0xCD7F32 },
+    { name: "Silver I", minWins: 16, maxWins: 20, color: 0xC0C0C0 },
+    { name: "Silver II", minWins: 21, maxWins: 30, color: 0xC0C0C0 },
+    { name: "Silver III", minWins: 31, maxWins: 40, color: 0xC0C0C0 },
+    { name: "Gold I", minWins: 41, maxWins: 55, color: 0xFFD700 },
+    { name: "Gold II", minWins: 56, maxWins: 70, color: 0xFFD700 },
+    { name: "Gold III", minWins: 71, maxWins: 90, color: 0xFFD700 },
+    { name: "Platinum I", minWins: 91, maxWins: 110, color: 0xE5E4E2 },
+    { name: "Platinum II", minWins: 111, maxWins: 130, color: 0xE5E4E2 },
+    { name: "Platinum III", minWins: 131, maxWins: 150, color: 0xE5E4E2 },
+    { name: "Diamond I", minWins: 151, maxWins: 175, color: 0xB9F2FF },
+    { name: "Diamond II", minWins: 176, maxWins: 200, color: 0xB9F2FF },
+    { name: "Diamond III", minWins: 201, maxWins: Infinity, color: 0xB9F2FF }
 ];
 
 /**
@@ -31,6 +42,7 @@ export const RANKS = [
 export function getPlayerStats(player: PlayerObject): PlayerStats {
     let stats = playerStatsMap.get(player.auth);
     if (!stats) {
+        // Every new player that joins for the first time starts with 0 wins (Unranked)
         stats = { wins: 0, goals: 0, assists: 0, matchesPlayed: 0 };
         playerStatsMap.set(player.auth, stats);
     }
@@ -42,7 +54,15 @@ export function getPlayerStats(player: PlayerObject): PlayerStats {
  */
 export function getRank(wins: number): string {
     const rank = RANKS.find(r => wins >= r.minWins && wins <= r.maxWins);
-    return rank ? rank.name : "Bronze";
+    return rank ? rank.name : "Unranked";
+}
+
+/**
+ * Determines the full rank object based on win count (for color and name)
+ */
+export function getRankObject(wins: number) {
+    const rank = RANKS.find(r => wins >= r.minWins && wins <= r.maxWins);
+    return rank || RANKS[0]!;
 }
 
 /**
