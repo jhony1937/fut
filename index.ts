@@ -65,11 +65,24 @@ HaxballJS.then((HBInit) => {
     handlePlayerLeaving(player);
   }
 
-  room.onPlayerBallTouch = function (player: PlayerObject): void {
-    // Update ball touch tracking for goals/assists
-    if (lastBallTouch?.id !== player.id) {
-      secondLastBallTouch = lastBallTouch;
-      lastBallTouch = player;
+  function checkBallTouch(): void {
+    const ballPos = room.getBallPosition();
+    if (!ballPos) return;
+
+    const players = room.getPlayerList().filter(p => p.team !== 0);
+    for (const player of players) {
+      if (!player.position) continue;
+      const dx = player.position.x - ballPos.x;
+      const dy = player.position.y - ballPos.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance < 28) { // 15 (player) + 10 (ball) + 3 (buffer)
+        if (lastBallTouch?.id !== player.id) {
+          secondLastBallTouch = lastBallTouch;
+          lastBallTouch = player;
+        }
+        break; // Only one player can touch at a time
+      }
     }
   }
 
@@ -123,12 +136,18 @@ HaxballJS.then((HBInit) => {
     secondLastBallTouch = null;
   }
 
+  room.onPositionsReset = function (): void {
+    lastBallTouch = null;
+    secondLastBallTouch = null;
+  }
+
   room.onPlayerActivity = function (player: PlayerObject): void {
     handlePlayerActivity(player.id);
   }
 
   room.onGameTick = function (): void {
     if (!debuggingMode) checkAndHandleInactivePlayers();
+    checkBallTouch();
   }
 
   room.onPlayerChat = function (player: PlayerObject, message: string): boolean {
