@@ -6,7 +6,7 @@ import { handlePlayerLeaving } from "./playerleaving.js";
 import { handleTeamWin } from "./teammanagement.js";
 import { checkAndHandleBadWords, checkAndHandleSpam } from "./moderation.js";
 import { checkAndHandleCommands } from "./commands.js";
-import { playerNames, getPlayerStats, updatePlayerStats } from "./stats.js";
+import { playerNames, getPlayerStats, updatePlayerStats, getRankObject } from "./stats.js";
 
 export const debuggingMode = false;
 const scoreLimit: number = 3;
@@ -152,7 +152,17 @@ HaxballJS.then((HBInit) => {
 
   room.onPlayerChat = function (player: PlayerObject, message: string): boolean {
     console.log(`${player.name}: ${message}`);
-    return !checkAndHandleCommands(player, message) && !checkAndHandleBadWords(player, message) && !checkAndHandleSpam(player, message);
+    
+    // Check if message is a command, bad word or spam
+    const handled = checkAndHandleCommands(player, message) || checkAndHandleBadWords(player, message) || checkAndHandleSpam(player, message);
+    if (handled) return false; // Suppress default chat
+
+    // Custom chat display with rank
+    const stats = getPlayerStats(player);
+    const rank = getRankObject(stats.wins);
+    room.sendAnnouncement(`[${rank.name}] ${player.name}: ${message}`, undefined, rank.color, "normal", 0);
+    
+    return false; // Suppress default chat
   }
 });
 
