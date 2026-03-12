@@ -29,7 +29,7 @@ HaxballJS.then((HBInit) => {
   room = HBInit({
     roomName: "⚖️ FUTSAL Testing ⚖️",
     maxPlayers: 20,
-    public: true,
+    public: false,
     noPlayer: true,
     geo: {
       code: "MA",
