@@ -1,12 +1,12 @@
 import { room } from "./index.js";
-import { getPlayerStats, getRank, getTopPlayers, playerNames } from "./stats.js";
+import { getPlayerStats, getRank, getTopPlayers, playerNames, setPlayerRankByName } from "./stats.js";
 
 interface Command {
     name: string;
     description: string;
     emoji: string;
     adminOnly: boolean
-    response: (player: PlayerObject) => void;
+    response: (player: PlayerObject, args: string[]) => void;
 }
 
 const commands: Command[] = [
@@ -89,6 +89,37 @@ const commands: Command[] = [
         }
     },
     {
+        name: "setrank",
+        description: "manually set a player's rank (!setrank PlayerName RankName)",
+        emoji: "👑",
+        adminOnly: true,
+        response: (player: PlayerObject, args: string[]) => {
+            if (args.length < 2) {
+                room.sendAnnouncement("🚫 Usage: !setrank PlayerName Rank (e.g., !setrank Midox Diamond III)", player.id, 0xFF0000, "bold", 0);
+                return;
+            }
+
+            // Find player by name (case-insensitive)
+            const targetName = args[0];
+            const targetPlayer = room.getPlayerList().find(p => p.name.toLowerCase() === targetName?.toLowerCase());
+
+            if (!targetPlayer) {
+                room.sendAnnouncement(`🚫 Player "${targetName}" not found in the room.`, player.id, 0xFF0000, "bold", 0);
+                return;
+            }
+
+            // Join the remaining args to support multi-word rank names (e.g., "Diamond III")
+            const rankName = args.slice(1).join(" ");
+            const success = setPlayerRankByName(targetPlayer.auth, rankName);
+
+            if (success) {
+                room.sendAnnouncement(`✅ Rank for ${targetPlayer.name} has been set to ${rankName}.`, undefined, 0x00FF00, "bold", 0);
+            } else {
+                room.sendAnnouncement(`🚫 Invalid rank name: "${rankName}".`, player.id, 0xFF0000, "bold", 0);
+            }
+        }
+    },
+    {
         name: "discord",
         description: "show the link to the room's public repository",
         emoji: "👨‍💻",
@@ -110,13 +141,24 @@ const commands: Command[] = [
 
 export function checkAndHandleCommands(player: PlayerObject, message: string): boolean {
     if (!isCommand(message)) return false;
-    const commandMessage = message.substring(1);
-    const command = commands.find((command) => command.name === commandMessage);
+    
+    const fullCommand = message.substring(1).split(" ");
+    const commandName = fullCommand[0]?.toLowerCase();
+    const args = fullCommand.slice(1);
+
+    const command = commands.find((command) => command.name === commandName);
+    
     if (!command) {
         room.sendAnnouncement("🚫 This command does not exist. Type !help to see the list of commands.", player.id, 0xFF0000, "bold", 0);
         return true;
     }
-    command.response(player);
+
+    if (command.adminOnly && !player.admin) {
+        room.sendAnnouncement("🚫 You do not have permission to use this command.", player.id, 0xFF0000, "bold", 0);
+        return true;
+    }
+
+    command.response(player, args);
     return true;
 }
 
