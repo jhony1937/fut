@@ -1,5 +1,3 @@
-import { room } from "./index.js";
-
 /**
  * Interface for tracking player statistics
  */
