@@ -11,7 +11,7 @@ interface Command {
 const commands: Command[] = [
     {
         name: "help",
-        description: "mostrar a lista dos comandos e respetivas funções",
+        description: "show the list of commands and their functions",
         emoji: "❓",
         adminOnly: false,
         response: (player: PlayerObject) => {
@@ -22,21 +22,21 @@ const commands: Command[] = [
         }
     },
     {
-        name: "github",
-        description: "mostrar o link para o repositório público da sala",
+        name: "discord",
+        description: "show the link to the room's public repository",
         emoji: "👨‍💻",
         adminOnly: false,
         response: (player: PlayerObject) => {
-            sendBoldWhiteAnnouncement("👨‍💻 O código desta sala é open source: github.com/DazzDev/SimpleHaxballFutsal.", player.id);
+            sendBoldWhiteAnnouncement("👨‍💻 : Soooooooon.", player.id);
         }
     },
     {
         name: "bb",
-        description: "sair da sala",
+        description: "leave the room",
         emoji: "👋",
         adminOnly: false,
         response: (player: PlayerObject) => {
-            room.kickPlayer(player.id, "Comando !bb", false);
+            room.kickPlayer(player.id, "Command !bb", false);
         }
     }
 ];
@@ -46,7 +46,7 @@ export function checkAndHandleCommands(player: PlayerObject, message: string): b
     const commandMessage = message.substring(1);
     const command = commands.find((command) => command.name === commandMessage);
     if (!command) {
-        room.sendAnnouncement("🚫 Esse comando não existe. Escreve !help para veres a lista dos comandos.", player.id, 0xFF0000, "bold", 0);
+        room.sendAnnouncement("🚫 This command does not exist. Type !help to see the list of commands.", player.id, 0xFF0000, "bold", 0);
         return true;
     }
     command.response(player);
