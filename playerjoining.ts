@@ -1,6 +1,7 @@
 import { room, specPlayerIdList, debuggingMode, playerConnStrings, adminAuthList, redPlayerIdList, restartGameWithCallback, bluePlayerIdList } from "./index.js";
 import { checkAndHandleBadWords } from "./moderation.js";
 import { movePlayerToTeam, moveOneSpecToEachTeam } from "./teammanagement.js";
+import { getPlayerStats, getRankObject } from "./stats.js";
 
 export function handlePlayerJoining(player: PlayerObject): void {
     const playerId: number = player.id;
@@ -9,7 +10,14 @@ export function handlePlayerJoining(player: PlayerObject): void {
     if (checkAndHandleBadWords(player, playerName)) return;
     if (isPlayerAlreadyConnected(player, player.conn)) return;
     if (adminAuthList.has(player.auth)) room.setPlayerAdmin(playerId, true);
-    room.sendAnnouncement(`👋 Welcome, ${playerName}.`, playerId, 0x00FF00, "bold", 0);
+    
+    // Get stats and rank for join message
+    const stats = getPlayerStats(player);
+    const rank = getRankObject(stats.wins);
+    
+    // Show [Rank] PlayerName joined the game to everyone
+    room.sendAnnouncement(`[${rank.name}] ${playerName} joined the game`, undefined, rank.color, "bold", 0);
+    
     specPlayerIdList.push(playerId);
     console.log(`>>> ${playerName} joined the room.`);
     checkAndRestartWithNewMode(playerList);
