@@ -93,3 +93,18 @@ export function getTopPlayers(limit: number = 10) {
  * used for displaying names in the leaderboard even if players are offline.
  */
 export const playerNames = new Map<string, string>();
+
+/**
+ * Manually sets a player's wins to match the minimum required for a specific rank name.
+ */
+export function setPlayerRankByName(playerAuth: string, rankName: string): boolean {
+    const rank = RANKS.find(r => r.name.toLowerCase() === rankName.toLowerCase());
+    if (!rank) return false;
+
+    const stats = playerStatsMap.get(playerAuth);
+    if (stats) {
+        stats.wins = rank.minWins;
+        return true;
+    }
+    return false;
+}
