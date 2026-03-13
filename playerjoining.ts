@@ -16,9 +16,14 @@ export function handlePlayerJoining(player: PlayerObject): void {
     const rank = getRankObject(stats.wins);
     
     // Show [Rank] PlayerName joined the game to everyone
-    room.sendAnnouncement(`[${rank.name}] ${playerName} joined the game`, undefined, rank.color, "bold", 0);
-    
-    specPlayerIdList.push(playerId);
+     room.sendAnnouncement(`[${rank.name}] ${playerName} joined the game`, undefined, rank.color, "bold", 0);
+     
+     // Welcome message for the joined player
+     room.sendAnnouncement(`👋 Welcome ${playerName} to the room!`, playerId, 0x00FF00, "bold", 0);
+     room.sendAnnouncement(`📜 Type !rules to see the server rules.`, playerId, 0xFFFF00, "bold", 0);
+     room.sendAnnouncement(`💬 To talk in team chat press T.`, playerId, 0x00FFFF, "bold", 0);
+     
+     specPlayerIdList.push(playerId);
     console.log(`>>> ${playerName} joined the room.`);
     checkAndRestartWithNewMode(playerList);
 }
