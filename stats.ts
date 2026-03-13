@@ -19,21 +19,21 @@ export const playerStatsMap = new Map<string, PlayerStats>();
  */
 export const RANKS = [
     { name: "Unranked", minWins: 0, maxWins: 0, color: 0xFFFFFF },
-    { name: "Bronze I", minWins: 1, maxWins: 5, color: #662200 },
-    { name: "Bronze II", minWins: 6, maxWins: 10, color: #662200 },
-    { name: "Bronze III", minWins: 11, maxWins: 15, color: #662200 },
-    { name: "Silver I", minWins: 16, maxWins: 20, color: #a7a7a5 },
-    { name: "Silver II", minWins: 21, maxWins: 30, color: #a7a7a5 },
-    { name: "Silver III", minWins: 31, maxWins: 40, color: #a7a7a5 },
-    { name: "Gold I", minWins: 41, maxWins: 55, color: #ffd11a },
-    { name: "Gold II", minWins: 56, maxWins: 70, color: #ffd11a },
-    { name: "Gold III", minWins: 71, maxWins: 90, color: #ffd11a },
-    { name: "Platinum I", minWins: 91, maxWins: 110, color: #005ce6 },
-    { name: "Platinum II", minWins: 111, maxWins: 130, color: #005ce6 },
-    { name: "Platinum III", minWins: 131, maxWins: 150, color: #005ce6 },
-    { name: "Diamond I", minWins: 151, maxWins: 175, color: #00ace6 },
-    { name: "Diamond II", minWins: 176, maxWins: 200, color: #00ace6 },
-    { name: "Diamond III", minWins: 201, maxWins: Infinity, color: #00ace6 }
+    { name: "Bronze I", minWins: 1, maxWins: 5, color: 0xCD7F32 },
+    { name: "Bronze II", minWins: 6, maxWins: 10, color: 0xCD7F32 },
+    { name: "Bronze III", minWins: 11, maxWins: 15, color: 0xCD7F32 },
+    { name: "Silver I", minWins: 16, maxWins: 20, color: 0xC0C0C0 },
+    { name: "Silver II", minWins: 21, maxWins: 30, color: 0xC0C0C0 },
+    { name: "Silver III", minWins: 31, maxWins: 40, color: 0xC0C0C0 },
+    { name: "Gold I", minWins: 41, maxWins: 55, color: 0xFFD700 },
+    { name: "Gold II", minWins: 56, maxWins: 70, color: 0xFFD700 },
+    { name: "Gold III", minWins: 71, maxWins: 90, color: 0xFFD700 },
+    { name: "Platinum I", minWins: 91, maxWins: 110, color: 0xE5E4E2 },
+    { name: "Platinum II", minWins: 111, maxWins: 130, color: 0xE5E4E2 },
+    { name: "Platinum III", minWins: 131, maxWins: 150, color: 0xE5E4E2 },
+    { name: "Diamond I", minWins: 151, maxWins: 175, color: 0xB9F2FF },
+    { name: "Diamond II", minWins: 176, maxWins: 200, color: 0xB9F2FF },
+    { name: "Diamond III", minWins: 201, maxWins: Infinity, color: 0xB9F2FF }
 ];
 
 /**
@@ -108,4 +108,3 @@ export function setPlayerRankByName(playerAuth: string, rankName: string): boole
     }
     return false;
 }
-
