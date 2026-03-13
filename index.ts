@@ -32,9 +32,9 @@ export let room: RoomObject;
 
 HaxballJS.then((HBInit) => {
   room = HBInit({
-    roomName: "⚖️ FUTSAL Testing ⚖️",
+    roomName: "🟨◼ ᴍᴅx | ғᴜᴛsᴀʟ 3v3 | ʀᴀɴᴋᴇᴅ ◼🟨",
     maxPlayers: 20,
-    public: false,
+    public: true,
     noPlayer: true,
     geo: {
       code: "MA",
