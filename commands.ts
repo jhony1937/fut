@@ -120,6 +120,19 @@ const commands: Command[] = [
         }
     },
     {
+        name: "rules",
+        description: "show the server rules",
+        emoji: "📜",
+        adminOnly: false,
+        response: (player: PlayerObject) => {
+            room.sendAnnouncement("📜 --- SERVER RULES --- 📜", player.id, 0xFFFF00, "bold", 0);
+            room.sendAnnouncement("1. No bad words.", player.id, 0xFFFFFF, "normal", 0);
+            room.sendAnnouncement("2. No spamming.", player.id, 0xFFFFFF, "normal", 0);
+            room.sendAnnouncement("3. Respect other players.", player.id, 0xFFFFFF, "normal", 0);
+            room.sendAnnouncement("4. Have fun!", player.id, 0xFFFFFF, "normal", 0);
+        }
+    },
+    {
         name: "discord",
         description: "show the link to the room's public repository",
         emoji: "👨‍💻",
