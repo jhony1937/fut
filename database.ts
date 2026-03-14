@@ -1,10 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 
 // --- SUPABASE CONFIGURATION ---
-// Replace the strings below with your actual Supabase project details.
-// You can find these in your Supabase Dashboard under Settings > API.
+// 1. Get your URL and Key from: Supabase Dashboard > Project Settings > API
+// 2. The 'SUPABASE_KEY' should be the 'service_role' key (secret) for administrative tasks.
+// 3. You can set these in your Railway Environment Variables or replace the strings below.
+
 const SUPABASE_URL = process.env['SUPABASE_URL'] || 'https://rchvhflfktrkruzrxkik.supabase.co';
 const SUPABASE_KEY = process.env['SUPABASE_KEY'] || 'sb_secret_sW5NdRBLNNRWeY9y1FAGaA_tNgWf0JF';
+
+if (!SUPABASE_URL || SUPABASE_URL.includes('YOUR_SUPABASE_URL')) {
+  console.warn("⚠️ SUPABASE_URL is not configured correctly!");
+}
+if (!SUPABASE_KEY || SUPABASE_KEY.includes('YOUR_SUPABASE_SECRET_KEY')) {
+  console.warn("⚠️ SUPABASE_KEY is not configured correctly!");
+}
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -22,16 +31,26 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
  *   elo INTEGER DEFAULT 1000,
  *   created_at TIMESTAMPTZ DEFAULT NOW()
  * );
+ * ALTER TABLE players DISABLE ROW LEVEL SECURITY;
  */
 
 export async function initDatabase() {
-  console.log("Supabase client initialized.");
-  // Verification check: try to fetch one row (optional)
-  const { data, error } = await supabase.from('players').select('id').limit(1);
-  if (error) {
-    console.error("Error connecting to Supabase 'players' table:", error.message);
-    console.log("Please ensure you have created the 'players' table in your Supabase SQL Editor.");
-  } else {
-    console.log("Successfully connected to Supabase 'players' table.");
+  console.log("Supabase client initialized. URL:", SUPABASE_URL);
+  try {
+    // Verification check: try to fetch one row
+    const { data, error, status } = await supabase.from('players').select('id').limit(1);
+    
+    if (error) {
+      console.error(`❌ Connection Error (Status ${status}):`, error.message);
+      if (error.message.includes("JWT")) {
+          console.error("👉 Your SUPABASE_KEY might be invalid or expired.");
+      } else if (error.message.includes("relation \"players\" does not exist")) {
+          console.error("👉 The 'players' table does not exist in your database. Run the SQL above in Supabase SQL Editor.");
+      }
+    } else {
+      console.log("✅ Successfully connected to Supabase 'players' table.");
+    }
+  } catch (err) {
+    console.error("❌ Unexpected error during database initialization:", err);
   }
 }
