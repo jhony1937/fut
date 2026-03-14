@@ -89,29 +89,25 @@ const commands: Command[] = [
             const rankName = args.slice(1).join(" ");
             const targetName = targetMention.startsWith("@") ? targetMention.substring(1) : targetMention;
 
-            // Find player in the room
-            const targetPlayer = room.getPlayerList().find(p => p.name.toLowerCase() === targetName.toLowerCase());
-
-            if (!targetPlayer) {
-                room.sendAnnouncement(`🚫 Player @${targetName} not found.`, admin.id, 0xFF0000, "bold", 0);
-                return;
-            }
+            // Find player in the room (optional for manual setting, but good for verification)
+            let targetPlayer = room.getPlayerList().find(p => p.name.toLowerCase() === targetName.toLowerCase());
+            let finalTargetName = targetPlayer ? targetPlayer.name : targetName;
 
             // Validate rank
             const rankObj = RANKS.find(r => r.name.toLowerCase() === rankName.toLowerCase());
             if (!rankObj) {
-                room.sendAnnouncement(`🚫 Invalid rank. Available ranks: Bronze I-III, Silver I-III, Gold I-III, Platinum I-III, Diamond I-III, VIP.`, admin.id, 0xFF0000, "bold", 0);
+                room.sendAnnouncement(`🚫 Invalid rank. Available ranks: Unranked, Bronze I-III, Silver I-III, Gold I-III, Platinum I-III, Diamond I-III, Champion, VIP.`, admin.id, 0xFF0000, "bold", 0);
                 return;
             }
 
-            const success = await setPlayerRankInDB(targetPlayer.name, rankObj.name);
+            const success = await setPlayerRankInDB(finalTargetName, rankObj.name);
             if (success) {
                 const isVIP = rankObj.name === "VIP";
                 const messageColor = isVIP ? 0xFFFF00 : 0x00FF00;
-                room.sendAnnouncement(`✅ Player @${targetPlayer.name} is now ${rankObj.name}.`, undefined, messageColor, "bold", 0);
+                room.sendAnnouncement(`✅ Player @${finalTargetName} is now ${rankObj.name}.`, undefined, messageColor, "bold", 0);
                 
                 if (isVIP) {
-                    room.sendAnnouncement(`✨ GLOW: @${targetPlayer.name} has received VIP status! ✨`, undefined, 0xFFFF00, "bold", 0);
+                    room.sendAnnouncement(`✨ GLOW: @${finalTargetName} has received VIP status! ✨`, undefined, 0xFFFF00, "bold", 0);
                 }
             } else {
                 room.sendAnnouncement(`🚫 Database error while setting rank.`, admin.id, 0xFF0000, "bold", 0);
