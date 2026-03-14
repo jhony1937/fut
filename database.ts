@@ -38,7 +38,7 @@ export async function initDatabase() {
   console.log("Supabase client initialized. URL:", SUPABASE_URL);
   try {
     // Verification check: try to fetch one row
-    const { data, error, status } = await supabase.from('players').select('id').limit(1);
+    const { error, status } = await supabase.from('players').select('id').limit(1);
     
     if (error) {
       console.error(`❌ Connection Error (Status ${status}):`, error.message);
