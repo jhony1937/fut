@@ -35,14 +35,19 @@ const commands: Command[] = [
     },
     {
         name: "stats",
-        description: "shows your total wins and goals",
+        description: "shows your total wins, goals, and assists",
         emoji: "📊",
         adminOnly: false,
         response: async (player: PlayerObject) => {
             const stats = await getPlayerStatsFromDB(player.name);
-            room.sendAnnouncement(`📊 Stats for ${player.name}:`, player.id, 0x00FFFF, "bold", 0);
-            room.sendAnnouncement(`🏆 Wins: ${stats.wins}`, player.id, 0xFFFFFF, "bold", 0);
-            room.sendAnnouncement(`⚽ Goals: ${stats.goals}`, player.id, 0xFFFFFF, "bold", 0);
+            const rankObj = getRankObjectByElo(stats.elo);
+            room.sendAnnouncement(`📊 Player Stats`, player.id, 0x00FFFF, "bold", 0);
+            room.sendAnnouncement(`Name: ${player.name}`, player.id, 0xFFFFFF, "bold", 0);
+            room.sendAnnouncement(`Rank: ${rankObj.name}`, player.id, rankObj.color, "bold", 0);
+            room.sendAnnouncement(`ELO: ${stats.elo}`, player.id, 0xFFFFFF, "bold", 0);
+            room.sendAnnouncement(`Wins: ${stats.wins}`, player.id, 0xFFFFFF, "bold", 0);
+            room.sendAnnouncement(`Goals: ${stats.goals}`, player.id, 0xFFFFFF, "bold", 0);
+            room.sendAnnouncement(`Assists: ${stats.assists}`, player.id, 0xFFFFFF, "bold", 0);
         }
     },
     {
