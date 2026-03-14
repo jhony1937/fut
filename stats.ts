@@ -56,28 +56,26 @@ export const playerStatsCache = new Map<string, PlayerStats>();
 
 /**
  * Retrieves or initializes stats for a player from the database.
- * If player doesn't exist, inserts a new record.
+ * Uses an UPSERT pattern to ensure the player exists before returning.
  */
 export async function getPlayerStatsFromDB(playerName: string): Promise<PlayerStats> {
     try {
+        // Step 1: Ensure player exists (UPSERT style)
+        await db.query(
+            'INSERT INTO players(name, wins, goals, assists, rank, elo) VALUES($1, 0, 0, 0, \'Unranked\', 1000) ON CONFLICT(name) DO NOTHING',
+            [playerName]
+        );
+
+        // Step 2: Fetch the record
         const res = await db.query('SELECT * FROM players WHERE name = $1', [playerName]);
-        let stats: PlayerStats;
-        if (res.rows.length > 0) {
-            stats = res.rows[0];
-        } else {
-            // New player: insert into database
-            const insertRes = await db.query(
-                'INSERT INTO players (name) VALUES ($1) RETURNING *',
-                [playerName]
-            );
-            stats = insertRes.rows[0];
-        }
+        const stats: PlayerStats = res.rows[0];
+        
         // Update cache
         playerStatsCache.set(playerName, stats);
         return stats;
     } catch (err) {
-        console.error("Error fetching/inserting player stats:", err);
-        const defaultStats: PlayerStats = { name: playerName, wins: 0, goals: 0, assists: 0, rank: "Unranked", elo: 0 };
+        console.error("Error fetching/initializing player stats:", err);
+        const defaultStats: PlayerStats = { name: playerName, wins: 0, goals: 0, assists: 0, rank: "Unranked", elo: 1000 };
         playerStatsCache.set(playerName, defaultStats);
         return defaultStats;
     }
@@ -95,10 +93,20 @@ export function getRankObjectByElo(elo: number) {
 
 /**
  * Updates a player's rank manually in the database.
+ * Uses an UPSERT pattern to ensure the player exists before updating the rank.
  */
 export async function setPlayerRankInDB(playerName: string, rankName: string) {
     try {
+        // Step 1: Ensure player exists (UPSERT style)
+        await db.query(
+            'INSERT INTO players(name, wins, goals, assists, rank, elo) VALUES($1, 0, 0, 0, \'Unranked\', 1000) ON CONFLICT(name) DO NOTHING',
+            [playerName]
+        );
+
+        // Step 2: Update rank
         await db.query('UPDATE players SET rank = $1 WHERE name = $2', [rankName, playerName]);
+        
+        // Update cache
         const stats = playerStatsCache.get(playerName);
         if (stats) stats.rank = rankName;
         return true;
