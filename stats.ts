@@ -104,27 +104,37 @@ export function getRankObjectByElo(elo: number) {
 
 /**
  * Updates a player's rank manually in the database.
- * Uses an UPSERT pattern to ensure the player exists before updating the rank.
+ * Returns: "success", "not_found", or "error"
  */
-export async function setPlayerRankInDB(playerName: string, rankName: string) {
-    if (!playerName || playerName.trim() === "") return false;
+export async function setPlayerRankInDB(playerName: string, rankName: string): Promise<"success" | "not_found" | "error"> {
+    if (!playerName || playerName.trim() === "") return "error";
     
     try {
-        // Step 1: Ensure player exists and update rank
-        const { error } = await supabase
+        // Step 1: Attempt to update the player rank
+        // We use .select() to verify if any row was actually updated
+        const { data, error } = await supabase
             .from('players')
-            .upsert({ name: playerName, rank: rankName }, { onConflict: 'name' });
+            .update({ rank: rankName })
+            .ilike('name', playerName) // Case-insensitive match
+            .select();
 
-        if (error) throw error;
+        if (error) {
+            console.error("Supabase error in setPlayerRankInDB:", error.message);
+            return "error";
+        }
+
+        if (!data || data.length === 0) {
+            return "not_found";
+        }
 
         // Update local cache for immediate chat update
-        const stats = playerStatsCache.get(playerName);
-        if (stats) stats.rank = rankName;
+        const updatedStats = data[0] as PlayerStats;
+        playerStatsCache.set(updatedStats.name, updatedStats);
         
-        return true;
+        return "success";
     } catch (err) {
-        console.error("Database error in setPlayerRankInDB:", err);
-        return false;
+        console.error("Unexpected error in setPlayerRankInDB:", err);
+        return "error";
     }
 }
 
