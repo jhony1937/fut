@@ -257,20 +257,76 @@ export async function setPlayerEloInDB(playerName: string, targetElo: number) {
 }
 
 /**
- * Gets the top players for the leaderboard ordered by Elo
+ * Updates a player's wins manually in the database.
+ * Returns: "success", "not_found", or "error"
  */
-export async function getTopPlayersFromDB(limit: number = 10): Promise<PlayerStats[]> {
+export async function setPlayerWinsInDB(playerName: string, wins: number): Promise<"success" | "not_found" | "error"> {
+    if (!playerName || playerName.trim() === "") return "error";
+    try {
+        const { data, error } = await supabase.from('players').update({ wins }).ilike('name', playerName).select();
+        if (error) return "error";
+        if (!data || data.length === 0) return "not_found";
+        const updatedStats = data[0] as PlayerStats;
+        playerStatsCache.set(updatedStats.name, updatedStats);
+        return "success";
+    } catch (err) {
+        return "error";
+    }
+}
+
+/**
+ * Updates a player's goals manually in the database.
+ * Returns: "success", "not_found", or "error"
+ */
+export async function setPlayerGoalsInDB(playerName: string, goals: number): Promise<"success" | "not_found" | "error"> {
+    if (!playerName || playerName.trim() === "") return "error";
+    try {
+        const { data, error } = await supabase.from('players').update({ goals }).ilike('name', playerName).select();
+        if (error) return "error";
+        if (!data || data.length === 0) return "not_found";
+        const updatedStats = data[0] as PlayerStats;
+        playerStatsCache.set(updatedStats.name, updatedStats);
+        return "success";
+    } catch (err) {
+        return "error";
+    }
+}
+
+/**
+ * Updates a player's assists manually in the database.
+ * Returns: "success", "not_found", or "error"
+ */
+export async function setPlayerAssistsInDB(playerName: string, assists: number): Promise<"success" | "not_found" | "error"> {
+    if (!playerName || playerName.trim() === "") return "error";
+    try {
+        const { data, error } = await supabase.from('players').update({ assists }).ilike('name', playerName).select();
+        if (error) return "error";
+        if (!data || data.length === 0) return "not_found";
+        const updatedStats = data[0] as PlayerStats;
+        playerStatsCache.set(updatedStats.name, updatedStats);
+        return "success";
+    } catch (err) {
+        return "error";
+    }
+}
+
+/**
+ * Gets the top players for the leaderboard ordered by Goals, Wins, then Assists
+ */
+export async function getLeaderboardFromDB(limit: number = 10): Promise<PlayerStats[]> {
     try {
         const { data, error } = await supabase
             .from('players')
             .select('*')
-            .order('elo', { ascending: false })
+            .order('goals', { ascending: false })
+            .order('wins', { ascending: false })
+            .order('assists', { ascending: false })
             .limit(limit);
 
         if (error) throw error;
         return data || [];
     } catch (err) {
-        console.error("Error fetching top players:", err);
+        console.error("Error fetching leaderboard:", err);
         return [];
     }
 }
