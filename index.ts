@@ -5,8 +5,8 @@ import { handlePlayerJoining } from "./playerjoining.js";
 import { handlePlayerLeaving } from "./playerleaving.js";
 import { handleTeamWin } from "./teammanagement.js";
 import { checkAndHandleBadWords, checkAndHandleSpam } from "./moderation.js";
-import { checkAndHandleCommands } from "./commands.js";
-import { playerNames, getPlayerStatsFromDB, updatePlayerGoals, updatePlayerWin, getRankObjectByElo } from "./stats.js";
+import { checkAndHandleCommands, isCommand } from "./commands.js";
+import { playerNames, getPlayerStatsFromDB, updatePlayerGoals, updatePlayerWin, getRankObjectByElo, playerStatsCache } from "./stats.js";
 import { initDatabase } from "./database.js";
 
 export const debuggingMode = false;
@@ -87,7 +87,11 @@ HaxballJS.then(async (HBInit) => {
     }
   }
 
-  room.onTeamGoal = async function (teamId: number) {
+  room.onTeamGoal = function (teamId: number): void {
+    handleGoal(teamId);
+  }
+
+  async function handleGoal(teamId: number) {
     // Update goal and assist stats
     if (lastBallTouch && lastBallTouch.team === teamId) {
       await updatePlayerGoals(lastBallTouch.name);
@@ -114,9 +118,9 @@ HaxballJS.then(async (HBInit) => {
 
   //triggers *only* when a team is winning and the timer runs out, 
   //because the room is also listening for the onTeamGoal event, which triggers first
-  room.onTeamVictory = async function (scores: ScoresObject): void {
+  room.onTeamVictory = function (scores: ScoresObject): void {
     const winningTeam = scores.red > scores.blue ? 1 : 2;
-    await handleMatchEnd(winningTeam);
+    handleMatchEnd(winningTeam);
     const teamPlayerIdList = winningTeam === 1 ? redPlayerIdList : bluePlayerIdList;
     restartGameWithCallback(() => handleTeamWin(teamPlayerIdList));
   }
@@ -152,16 +156,24 @@ HaxballJS.then(async (HBInit) => {
     checkBallTouch();
   }
 
-  room.onPlayerChat = async function (player: PlayerObject, message: string): Promise<boolean> {
+  room.onPlayerChat = function (player: PlayerObject, message: string): boolean {
     console.log(`${player.name}: ${message}`);
     
-    // Check if message is a command, bad word or spam
-    const handled = checkAndHandleCommands(player, message) || checkAndHandleBadWords(player, message) || checkAndHandleSpam(player, message);
-    if (handled) return false; // Suppress default chat
+    // Commands are async but must be handled immediately in terms of chat visibility
+    if (isCommand(message)) {
+      checkAndHandleCommands(player, message);
+      return false; // Suppress command from chat
+    }
 
-    // Custom chat display with rank
-    const stats = await getPlayerStatsFromDB(player.name);
-    const rankObj = getRankObjectByElo(stats.elo);
+    // Check bad words/spam (assuming synchronous)
+    if (checkAndHandleBadWords(player, message) || checkAndHandleSpam(player, message)) {
+      return false;
+    }
+
+    // Custom chat display with rank using synchronous cache
+    const stats = playerStatsCache.get(player.name);
+    const elo = stats ? stats.elo : 1000;
+    const rankObj = getRankObjectByElo(elo);
     room.sendAnnouncement(`[${rankObj.name}] ${player.name}: ${message}`, undefined, rankObj.color, "normal", 0);
     
     return false; // Suppress default chat
