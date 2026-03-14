@@ -1,9 +1,9 @@
 import { room, specPlayerIdList, debuggingMode, playerConnStrings, adminAuthList, redPlayerIdList, restartGameWithCallback, bluePlayerIdList } from "./index.js";
 import { checkAndHandleBadWords } from "./moderation.js";
 import { movePlayerToTeam, moveOneSpecToEachTeam } from "./teammanagement.js";
-import { getPlayerStats, getRankObject } from "./stats.js";
+import { getPlayerStatsFromDB, getRankObjectByElo } from "./stats.js";
 
-export function handlePlayerJoining(player: PlayerObject): void {
+export async function handlePlayerJoining(player: PlayerObject): Promise<void> {
     const playerId: number = player.id;
     const playerName: string = player.name;
     const playerList: PlayerObject[] = room.getPlayerList();
@@ -11,12 +11,12 @@ export function handlePlayerJoining(player: PlayerObject): void {
     if (isPlayerAlreadyConnected(player, player.conn)) return;
     if (adminAuthList.has(player.auth)) room.setPlayerAdmin(playerId, true);
     
-    // Get stats and rank for join message
-    const stats = getPlayerStats(player);
-    const rank = getRankObject(stats.wins);
+    // Get stats and rank for join message from database
+    const stats = await getPlayerStatsFromDB(playerName);
+    const rankObj = getRankObjectByElo(stats.elo);
     
     // Show [Rank] PlayerName joined the game to everyone
-     room.sendAnnouncement(`[${rank.name}] ${playerName} joined the game`, undefined, rank.color, "bold", 0);
+     room.sendAnnouncement(`[${rankObj.name}] ${playerName} joined the game`, undefined, rankObj.color, "bold", 0);
      
      // Welcome message for the joined player
      room.sendAnnouncement(`👋 Welcome ${playerName} to the room!`, playerId, 0x00FF00, "bold", 0);
