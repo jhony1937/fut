@@ -35,14 +35,20 @@ const commands: Command[] = [
     },
     {
         name: "stats",
-        description: "shows your total wins, goals, and assists",
+        description: "shows stats for you or another player (!stats @player)",
         emoji: "📊",
         adminOnly: false,
-        response: async (player: PlayerObject) => {
-            const stats = await getPlayerStatsFromDB(player.name);
+        response: async (player: PlayerObject, args: string[]) => {
+            let targetName = player.name;
+            if (args.length > 0) {
+                const mention = args[0]!;
+                targetName = mention.startsWith("@") ? mention.substring(1) : mention;
+            }
+
+            const stats = await getPlayerStatsFromDB(targetName);
             const rankObj = getRankObjectByName(stats.rank);
-            room.sendAnnouncement(`📊 Player Stats`, player.id, 0x00FFFF, "bold", 0);
-            room.sendAnnouncement(`Name: ${player.name}`, player.id, 0xFFFFFF, "bold", 0);
+            
+            room.sendAnnouncement(`📊 Player Stats: ${targetName}`, player.id, 0x00FFFF, "bold", 0);
             room.sendAnnouncement(`Rank: ${rankObj.name}`, player.id, rankObj.color, "bold", 0);
             room.sendAnnouncement(`ELO: ${stats.elo}`, player.id, 0xFFFFFF, "bold", 0);
             room.sendAnnouncement(`Wins: ${stats.wins}`, player.id, 0xFFFFFF, "bold", 0);
