@@ -42,7 +42,7 @@ const commands: Command[] = [
             let targetName = player.name;
             if (args.length > 0) {
                 const mention = args[0]!;
-                targetName = mention.startsWith("@") ? mention.substring(1) : mention;
+                targetName = mention.startsWith("@") ? mention.substring(1).trim() : mention.trim();
             }
 
             const stats = await getPlayerStatsFromDB(targetName);
@@ -50,6 +50,7 @@ const commands: Command[] = [
             
             room.sendAnnouncement(`📊 Player Stats: ${targetName}`, player.id, 0x00FFFF, "bold", 0);
             room.sendAnnouncement(`Rank: ${rankObj.name}`, player.id, rankObj.color, "bold", 0);
+            room.sendAnnouncement(`Level: ${rankObj.level}`, player.id, 0xFFFFFF, "bold", 0);
             room.sendAnnouncement(`ELO: ${stats.elo}`, player.id, 0xFFFFFF, "bold", 0);
             room.sendAnnouncement(`Wins: ${stats.wins}`, player.id, 0xFFFFFF, "bold", 0);
             room.sendAnnouncement(`Goals: ${stats.goals}`, player.id, 0xFFFFFF, "bold", 0);
@@ -101,7 +102,8 @@ const commands: Command[] = [
             // Validate rank
             const rankObj = RANKS.find(r => r.name.toLowerCase() === rankName.toLowerCase());
             if (!rankObj) {
-                room.sendAnnouncement(`🚫 Invalid rank. Available ranks: Unranked, Bronze I-III, Silver I-III, Gold I-III, Platinum I-III, Diamond I-III, Champion, VIP.`, admin.id, 0xFF0000, "bold", 0);
+                const availableRanks = RANKS.map(r => r.name).join(", ");
+                room.sendAnnouncement(`🚫 Invalid rank. Available ranks: ${availableRanks}.`, admin.id, 0xFF0000, "bold", 0);
                 return;
             }
 
