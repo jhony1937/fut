@@ -14,25 +14,27 @@ export interface PlayerStats {
 }
 
 /**
- * Manual ranking definitions with specific hex colors
+ * Complete ranking system with 3-tier levels, Champion, and manual VIP
  */
 export const RANKS = [
-    { name: "Bronze I", color: 0xCD7F32 },
-    { name: "Bronze II", color: 0xCD7F32 },
-    { name: "Bronze III", color: 0xCD7F32 },
-    { name: "Silver I", color: 0xC0C0C0 },
-    { name: "Silver II", color: 0xC0C0C0 },
-    { name: "Silver III", color: 0xC0C0C0 },
-    { name: "Gold I", color: 0xFFD700 },
-    { name: "Gold II", color: 0xFFD700 },
-    { name: "Gold III", color: 0xFFD700 },
-    { name: "Platinum I", color: 0xE5E4E2 },
-    { name: "Platinum II", color: 0xE5E4E2 },
-    { name: "Platinum III", color: 0xE5E4E2 },
-    { name: "Diamond I", color: 0xB9F2FF },
-    { name: "Diamond II", color: 0xB9F2FF },
-    { name: "Diamond III", color: 0xB9F2FF },
-    { name: "VIP", color: 0xFFFF00 } // Flashy/Glow color
+    { name: "Unranked", minElo: 0, maxElo: 499, color: 0x999999 },      // Grey
+    { name: "Bronze I", minElo: 500, maxElo: 699, color: 0xCD7F32 },
+    { name: "Bronze II", minElo: 700, maxElo: 899, color: 0xCD7F32 },
+    { name: "Bronze III", minElo: 900, maxElo: 1099, color: 0xCD7F32 },
+    { name: "Silver I", minElo: 1100, maxElo: 1299, color: 0xC0C0C0 },
+    { name: "Silver II", minElo: 1300, maxElo: 1499, color: 0xC0C0C0 },
+    { name: "Silver III", minElo: 1500, maxElo: 1699, color: 0xC0C0C0 },
+    { name: "Gold I", minElo: 1700, maxElo: 1899, color: 0xFFD700 },
+    { name: "Gold II", minElo: 1900, maxElo: 2099, color: 0xFFD700 },
+    { name: "Gold III", minElo: 2100, maxElo: 2299, color: 0xFFD700 },
+    { name: "Platinum I", minElo: 2300, maxElo: 2499, color: 0xE5E4E2 },
+    { name: "Platinum II", minElo: 2500, maxElo: 2699, color: 0xE5E4E2 },
+    { name: "Platinum III", minElo: 2700, maxElo: 2899, color: 0xE5E4E2 },
+    { name: "Diamond I", minElo: 2900, maxElo: 3099, color: 0xB9F2FF },
+    { name: "Diamond II", minElo: 3100, maxElo: 3299, color: 0xB9F2FF },
+    { name: "Diamond III", minElo: 3300, maxElo: 3499, color: 0xB9F2FF },
+    { name: "Champion", minElo: 3500, maxElo: Infinity, color: 0xFF0000 }, // Vivid Red
+    { name: "VIP", minElo: -1, maxElo: -1, color: 0xFFFF00 } // Manual assignment only
 ];
 
 /**
@@ -75,10 +77,20 @@ export async function getPlayerStatsFromDB(playerName: string): Promise<PlayerSt
         return stats;
     } catch (err) {
         console.error("Error fetching/inserting player stats:", err);
-        const defaultStats: PlayerStats = { name: playerName, wins: 0, goals: 0, assists: 0, rank: "Bronze I", elo: 1000 };
+        const defaultStats: PlayerStats = { name: playerName, wins: 0, goals: 0, assists: 0, rank: "Unranked", elo: 0 };
         playerStatsCache.set(playerName, defaultStats);
         return defaultStats;
     }
+}
+
+/**
+ * Determines the rank object based on Elo for automatic progression
+ */
+export function getRankObjectByElo(elo: number) {
+    // Filter out VIP as it's manual only
+    const autoRanks = RANKS.filter(r => r.name !== "VIP");
+    const rank = autoRanks.find(r => elo >= r.minElo && elo <= r.maxElo);
+    return rank || autoRanks[0]!;
 }
 
 /**
@@ -134,22 +146,41 @@ export async function updatePlayerAssists(playerName: string) {
 
 /**
  * Updates a player's win count and Elo in the database.
+ * Also handles automatic rank progression (except for VIPs).
  */
 export async function updatePlayerWin(playerName: string, eloGain: number = 20) {
     try {
-        // Fetch current Elo to update rank if needed
         const stats = await getPlayerStatsFromDB(playerName);
         const newElo = stats.elo + eloGain;
-        // Manual rank system: do not update rank based on Elo
-        await db.query(
-            'UPDATE players SET wins = wins + 1, elo = $1 WHERE name = $2',
-            [newElo, playerName]
-        );
-        const cached = playerStatsCache.get(playerName);
-        if (cached) {
-            cached.wins += 1;
-            cached.elo = newElo;
+        
+        let updateQuery: string;
+        let queryParams: any[];
+
+        // Automatic rank progression: only for non-VIP players
+        if (stats.rank !== "VIP") {
+            const newRankObj = getRankObjectByElo(newElo);
+            updateQuery = 'UPDATE players SET wins = wins + 1, elo = $1, rank = $2 WHERE name = $3';
+            queryParams = [newElo, newRankObj.name, playerName];
+            
+            const cached = playerStatsCache.get(playerName);
+            if (cached) {
+                cached.wins += 1;
+                cached.elo = newElo;
+                cached.rank = newRankObj.name;
+            }
+        } else {
+            // VIPs keep their rank, only Elo and wins increase
+            updateQuery = 'UPDATE players SET wins = wins + 1, elo = $1 WHERE name = $2';
+            queryParams = [newElo, playerName];
+            
+            const cached = playerStatsCache.get(playerName);
+            if (cached) {
+                cached.wins += 1;
+                cached.elo = newElo;
+            }
         }
+
+        await db.query(updateQuery, queryParams);
     } catch (err) {
         console.error("Error updating win:", err);
     }
