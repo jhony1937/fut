@@ -17,24 +17,24 @@ export interface PlayerStats {
  * Complete ranking system with 3-tier levels, Champion, and manual VIP
  */
 export const RANKS = [
-    { name: "Unranked", minElo: 0, maxElo: 499, color: 0x999999 },      // Grey
-    { name: "Bronze I", minElo: 500, maxElo: 699, color: 0xCD7F32 },
-    { name: "Bronze II", minElo: 700, maxElo: 899, color: 0xCD7F32 },
-    { name: "Bronze III", minElo: 900, maxElo: 1099, color: 0xCD7F32 },
-    { name: "Silver I", minElo: 1100, maxElo: 1299, color: 0xC0C0C0 },
-    { name: "Silver II", minElo: 1300, maxElo: 1499, color: 0xC0C0C0 },
-    { name: "Silver III", minElo: 1500, maxElo: 1699, color: 0xC0C0C0 },
-    { name: "Gold I", minElo: 1700, maxElo: 1899, color: 0xFFD700 },
-    { name: "Gold II", minElo: 1900, maxElo: 2099, color: 0xFFD700 },
-    { name: "Gold III", minElo: 2100, maxElo: 2299, color: 0xFFD700 },
-    { name: "Platinum I", minElo: 2300, maxElo: 2499, color: 0xE5E4E2 },
-    { name: "Platinum II", minElo: 2500, maxElo: 2699, color: 0xE5E4E2 },
-    { name: "Platinum III", minElo: 2700, maxElo: 2899, color: 0xE5E4E2 },
-    { name: "Diamond I", minElo: 2900, maxElo: 3099, color: 0xB9F2FF },
-    { name: "Diamond II", minElo: 3100, maxElo: 3299, color: 0xB9F2FF },
-    { name: "Diamond III", minElo: 3300, maxElo: 3499, color: 0xB9F2FF },
-    { name: "Champion", minElo: 3500, maxElo: Infinity, color: 0xFF0000 }, // Vivid Red
-    { name: "VIP", minElo: -1, maxElo: -1, color: 0xFFFF00 } // Manual assignment only
+    { name: "Unranked", minElo: 0, maxElo: 499, color: 0xAAAAAA, level: "0" },
+    { name: "Bronze I", minElo: 500, maxElo: 699, color: 0xCD7F32, level: "1" },
+    { name: "Bronze II", minElo: 700, maxElo: 899, color: 0xCD7F32, level: "2" },
+    { name: "Bronze III", minElo: 900, maxElo: 1099, color: 0xCD7F32, level: "3" },
+    { name: "Silver I", minElo: 1100, maxElo: 1299, color: 0xE0E0E0, level: "1" },
+    { name: "Silver II", minElo: 1300, maxElo: 1499, color: 0xE0E0E0, level: "2" },
+    { name: "Silver III", minElo: 1500, maxElo: 1699, color: 0xE0E0E0, level: "3" },
+    { name: "Gold I", minElo: 1700, maxElo: 1899, color: 0xFFD700, level: "1" },
+    { name: "Gold II", minElo: 1900, maxElo: 2099, color: 0xFFD700, level: "2" },
+    { name: "Gold III", minElo: 2100, maxElo: 2299, color: 0xFFD700, level: "3" },
+    { name: "Platinum I", minElo: 2300, maxElo: 2499, color: 0x00FFFF, level: "1" },
+    { name: "Platinum II", minElo: 2500, maxElo: 2699, color: 0x00FFFF, level: "2" },
+    { name: "Platinum III", minElo: 2700, maxElo: 2899, color: 0x00FFFF, level: "3" },
+    { name: "Diamond I", minElo: 2900, maxElo: 3099, color: 0x0099FF, level: "1" },
+    { name: "Diamond II", minElo: 3100, maxElo: 3299, color: 0x0099FF, level: "2" },
+    { name: "Diamond III", minElo: 3300, maxElo: 3499, color: 0x0099FF, level: "3" },
+    { name: "Champion", minElo: 3500, maxElo: Infinity, color: 0xFF0000, level: "MAX" },
+    { name: "VIP", minElo: -1, maxElo: -1, color: 0xFFFF00, level: "GOD" }
 ];
 
 /**
@@ -112,30 +112,26 @@ export function getRankObjectByElo(elo: number) {
  * Uses an UPSERT pattern to ensure the player exists before updating the rank.
  */
 export async function setPlayerRankInDB(playerName: string, rankName: string) {
-    if (!playerName || playerName.trim() === "") {
-        console.error("Error: Player name is empty in setPlayerRankInDB");
-        return false;
-    }
+    if (!playerName || playerName.trim() === "") return false;
     
     try {
-        // Step 1: Ensure player exists (UPSERT style)
-        await db.query(
-            'INSERT INTO players(name, wins, goals, assists, rank, elo) VALUES($1, 0, 0, 0, \'Unranked\', 1000) ON CONFLICT(name) DO NOTHING',
-            [playerName]
-        );
+        // Step 1: Ensure player exists (Exact pattern requested)
+        await db.query(`INSERT INTO players(name, wins, goals, assists, rank, elo) 
+                        VALUES($1, 0, 0, 0, 'Unranked', 1000) 
+                        ON CONFLICT(name) DO NOTHING`, [playerName]);
 
-        // Step 2: Update rank
-        const res = await db.query('UPDATE players SET rank = $1 WHERE name = $2', [rankName, playerName]);
+        // Step 2: Update rank (Exact pattern requested)
+        const res = await db.query(`UPDATE players SET rank = $1 WHERE name = $2`, [rankName, playerName]);
         
+        // Fallback for case sensitivity
         if (res.rowCount === 0) {
-            // This might happen if the name was not found due to case sensitivity
-            // Fallback to case-insensitive update
-            await db.query('UPDATE players SET rank = $1 WHERE LOWER(name) = LOWER($2)', [rankName, playerName]);
+            await db.query(`UPDATE players SET rank = $1 WHERE LOWER(name) = LOWER($2)`, [rankName, playerName]);
         }
 
-        // Update cache
+        // Update local cache for immediate chat update
         const stats = playerStatsCache.get(playerName);
         if (stats) stats.rank = rankName;
+        
         return true;
     } catch (err) {
         console.error("Database error in setPlayerRankInDB:", err);
