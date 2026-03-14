@@ -4,7 +4,7 @@ const { Pool } = pg;
 
 // Connection pool configuration using environment variable from Railway
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: process.env['DATABASE_URL'],
   ssl: {
     rejectUnauthorized: false
   }
