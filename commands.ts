@@ -107,8 +107,9 @@ const commands: Command[] = [
                 return;
             }
 
-            const success = await setPlayerRankInDB(finalTargetName, rankObj.name);
-            if (success) {
+            const result = await setPlayerRankInDB(finalTargetName, rankObj.name);
+            
+            if (result === "success") {
                 const isVIP = rankObj.name === "VIP";
                 const messageColor = isVIP ? 0xFFFF00 : 0x00FF00;
                 room.sendAnnouncement(`✅ Player @${finalTargetName} is now ${rankObj.name}.`, undefined, messageColor, "bold", 0);
@@ -116,8 +117,10 @@ const commands: Command[] = [
                 if (isVIP) {
                     room.sendAnnouncement(`✨ GLOW: @${finalTargetName} has received VIP status! ✨`, undefined, 0xFFFF00, "bold", 0);
                 }
+            } else if (result === "not_found") {
+                room.sendAnnouncement(`🚫 Player @${finalTargetName} not found in database. (They must join at least once)`, admin.id, 0xFF0000, "bold", 0);
             } else {
-                room.sendAnnouncement(`🚫 Database error while setting rank.`, admin.id, 0xFF0000, "bold", 0);
+                room.sendAnnouncement(`🚫 Database error while setting rank. Check your Supabase URL/Key.`, admin.id, 0xFF0000, "bold", 0);
             }
         }
     },
