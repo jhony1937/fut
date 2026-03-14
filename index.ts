@@ -201,19 +201,20 @@ HaxballJS.then(async (HBInit) => {
       return false;
     }
 
-    // Custom chat display with manual rank using synchronous cache
+    // Custom chat display with rank using synchronous cache
     const stats = playerStatsCache.get(player.name);
-    const rankName = stats ? stats.rank : "Bronze I";
+    const rankName = stats ? stats.rank : "Unranked";
     const rankObj = getRankObjectByName(rankName);
     
     // VIP Glowing Effect: bold for all, distinctive color for VIP
     const fontWeight = "bold";
     
-    room.sendAnnouncement(`[${rankObj.name}] ${player.name}: ${message}`, undefined, rankObj.color, fontWeight, 0);
-    // Note: style parameter in sendAnnouncement is for "bold", "normal", "italic", etc. 
-    // Haxball API doesn't support multiple styles at once, so we use "bold" as primary.
-    // To make VIP stand out even more, we could potentially send a second "glow" announcement if needed,
-    // but a distinct color and bold prefix is usually sufficient.
+    if (rankName === "VIP") {
+      // Glow effect for VIP: Send a special announcement with a flashy prefix
+      room.sendAnnouncement(`✨ [${rankObj.name}] ${player.name}: ${message} ✨`, undefined, rankObj.color, fontWeight, 0);
+    } else {
+      room.sendAnnouncement(`[${rankObj.name}] ${player.name}: ${message}`, undefined, rankObj.color, fontWeight, 0);
+    }
     
     return false; // Suppress default chat
   }
