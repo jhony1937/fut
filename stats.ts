@@ -24,25 +24,48 @@ export const RANKS = [
 ];
 
 /**
+ * Map to store player stats keyed by their unique authentication string.
+ * This ensures stats persist even if the player re-joins during the session.
+ */
+export const playerStatsMap = new Map<string, PlayerStats>();
+
+/**
+ * Map to store the last known name for each player auth, 
+ * used for displaying names in the leaderboard even if players are offline.
+ */
+export const playerNames = new Map<string, string>();
+
+/**
+ * Map to cache player stats by name for synchronous access (e.g. in chat)
+ */
+export const playerStatsCache = new Map<string, PlayerStats>();
+
+/**
  * Retrieves or initializes stats for a player from the database.
  * If player doesn't exist, inserts a new record.
  */
 export async function getPlayerStatsFromDB(playerName: string): Promise<PlayerStats> {
     try {
         const res = await db.query('SELECT * FROM players WHERE name = $1', [playerName]);
+        let stats: PlayerStats;
         if (res.rows.length > 0) {
-            return res.rows[0];
+            stats = res.rows[0];
         } else {
             // New player: insert into database
             const insertRes = await db.query(
                 'INSERT INTO players (name) VALUES ($1) RETURNING *',
                 [playerName]
             );
-            return insertRes.rows[0];
+            stats = insertRes.rows[0];
         }
+        // Update cache
+        playerStatsCache.set(playerName, stats);
+        return stats;
     } catch (err) {
         console.error("Error fetching/inserting player stats:", err);
-        return { name: playerName, wins: 0, goals: 0, rank: "Bronze", elo: 1000 };
+        const defaultStats = { name: playerName, wins: 0, goals: 0, rank: "Bronze", elo: 1000 };
+        playerStatsCache.set(playerName, defaultStats);
+        return defaultStats;
     }
 }
 
@@ -60,6 +83,9 @@ export function getRankObjectByElo(elo: number) {
 export async function updatePlayerGoals(playerName: string) {
     try {
         await db.query('UPDATE players SET goals = goals + 1 WHERE name = $1', [playerName]);
+        // Update cache if player is online
+        const stats = playerStatsCache.get(playerName);
+        if (stats) stats.goals += 1;
     } catch (err) {
         console.error("Error updating goals:", err);
     }
@@ -79,6 +105,15 @@ export async function updatePlayerWin(playerName: string, eloGain: number = 20) 
             'UPDATE players SET wins = wins + 1, elo = $1, rank = $2 WHERE name = $3',
             [newElo, newRankObj.name, playerName]
         );
+        // getPlayerStatsFromDB already updates the cache, but we need to update the wins/elo/rank manually here 
+        // to avoid another DB call if we wanted to be super efficient, but getPlayerStatsFromDB is fine.
+        // Actually, let's just update the cache directly.
+        const cached = playerStatsCache.get(playerName);
+        if (cached) {
+            cached.wins += 1;
+            cached.elo = newElo;
+            cached.rank = newRankObj.name;
+        }
     } catch (err) {
         console.error("Error updating win:", err);
     }
