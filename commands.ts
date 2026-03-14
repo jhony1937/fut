@@ -87,7 +87,12 @@ const commands: Command[] = [
 
             const targetMention = args[0]!;
             const rankName = args.slice(1).join(" ");
-            const targetName = targetMention.startsWith("@") ? targetMention.substring(1) : targetMention;
+            const targetName = targetMention.startsWith("@") ? targetMention.substring(1).trim() : targetMention.trim();
+
+            if (!targetName) {
+                room.sendAnnouncement("🚫 Invalid player name.", admin.id, 0xFF0000, "bold", 0);
+                return;
+            }
 
             // Find player in the room (optional for manual setting, but good for verification)
             let targetPlayer = room.getPlayerList().find(p => p.name.toLowerCase() === targetName.toLowerCase());
