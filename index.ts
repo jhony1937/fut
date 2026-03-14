@@ -166,9 +166,22 @@ HaxballJS.then(async (HBInit) => {
     if (lowerMsg.startsWith("t ")) {
       const teamMsg = message.substring(2).trim();
       if (teamMsg.length > 0) {
-        const teamPlayers = room.getPlayerList().filter(p => p.team === player.team);
-        const prefix = player.team === 0 ? "[SPEC]" : "[TEAM]";
-        const color = player.team === 1 ? 0xFF9999 : (player.team === 2 ? 0x9999FF : 0xCCCCCC); // Red-ish, Blue-ish, or Grey for SPEC
+        const playerTeam = player.team;
+        const teamPlayers = room.getPlayerList().filter(p => p.team === playerTeam);
+        
+        let prefix = "";
+        let color = 0xFFFFFF; // Default white
+
+        if (playerTeam === 1) { // RED TEAM
+          prefix = "[TEAM RED]";
+          color = 0xFF3333; // Vivid Red Roi
+        } else if (playerTeam === 2) { // BLUE TEAM
+          prefix = "[TEAM BLUE]";
+          color = 0x3366FF; // Vivid Blue Roi
+        } else { // SPECTATORS
+          prefix = "[SPEC]";
+          color = 0xFFFFFF; // White
+        }
 
         teamPlayers.forEach(tp => {
           room.sendAnnouncement(`${prefix} ${player.name}: ${teamMsg}`, tp.id, color, "bold", 0);
