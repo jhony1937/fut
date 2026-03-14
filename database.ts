@@ -21,8 +21,8 @@ export async function initDatabase() {
       wins INTEGER DEFAULT 0,
       goals INTEGER DEFAULT 0,
       assists INTEGER DEFAULT 0,
-      rank TEXT DEFAULT 'Bronze',
-      elo INTEGER DEFAULT 1000
+      rank TEXT DEFAULT 'Unranked',
+      elo INTEGER DEFAULT 0
     );
     ALTER TABLE players ADD COLUMN IF NOT EXISTS assists INTEGER DEFAULT 0;
   `;
