@@ -6,7 +6,8 @@ import { handlePlayerLeaving } from "./playerleaving.js";
 import { handleTeamWin } from "./teammanagement.js";
 import { checkAndHandleBadWords, checkAndHandleSpam } from "./moderation.js";
 import { checkAndHandleCommands } from "./commands.js";
-import { playerNames, getPlayerStats, updatePlayerStats, getRankObject } from "./stats.js";
+import { playerNames, getPlayerStatsFromDB, updatePlayerGoals, updatePlayerWin, getRankObjectByElo } from "./stats.js";
+import { initDatabase } from "./database.js";
 
 export const debuggingMode = false;
 const scoreLimit: number = 3;
@@ -30,9 +31,10 @@ let secondLastBallTouch: PlayerObject | null = null;
 
 export let room: RoomObject;
 
-HaxballJS.then((HBInit) => {
+HaxballJS.then(async (HBInit) => {
+  await initDatabase();
   room = HBInit({
-    roomName: "🟨◼ ᴍᴅx | ғᴜᴛsᴀʟ 3v3 | ʀᴀɴᴋᴇᴅ ◼🟨",
+    roomName: "⚖️ FUTSAL Testing ⚖️",
     maxPlayers: 20,
     public: false,
     noPlayer: true,
@@ -56,8 +58,7 @@ HaxballJS.then((HBInit) => {
   room.onPlayerJoin = function (player: PlayerObject): void {
     // Store player name for leaderboard persistence
     playerNames.set(player.auth, player.name);
-    // Initialize stats if not exists
-    getPlayerStats(player);
+    // Initialize stats from database if not exists
     handlePlayerJoining(player);
   }
 
@@ -86,14 +87,15 @@ HaxballJS.then((HBInit) => {
     }
   }
 
-  room.onTeamGoal = function (teamId: number) {
+  room.onTeamGoal = async function (teamId: number) {
     // Update goal and assist stats
     if (lastBallTouch && lastBallTouch.team === teamId) {
-      updatePlayerStats(lastBallTouch.auth, { goals: 1 });
+      await updatePlayerGoals(lastBallTouch.name);
       room.sendAnnouncement(`⚽ Goal by ${lastBallTouch.name}!`, undefined, 0xFFFF00, "bold", 0);
       
       if (secondLastBallTouch && secondLastBallTouch.team === teamId && secondLastBallTouch.id !== lastBallTouch.id) {
-        updatePlayerStats(secondLastBallTouch.auth, { assists: 1 });
+        // Assist tracking is not explicitly in the user's DB table, 
+        // but let's keep it as an announcement for now.
         room.sendAnnouncement(`👟 Assist by ${secondLastBallTouch.name}!`, undefined, 0xFFFF00, "bold", 0);
       }
     }
@@ -105,30 +107,30 @@ HaxballJS.then((HBInit) => {
     const teamScore = teamId === 1 ? scores.red : scores.blue;
     const teamPlayerIdList = teamId === 1 ? redPlayerIdList : bluePlayerIdList;
     if (teamScore === scoreLimit || scores.time > timeLimit * 60) {
-      handleMatchEnd(teamId === 1 ? 1 : 2);
+      await handleMatchEnd(teamId === 1 ? 1 : 2);
       restartGameWithCallback(() => handleTeamWin(teamPlayerIdList));
     }
   }
 
   //triggers *only* when a team is winning and the timer runs out, 
   //because the room is also listening for the onTeamGoal event, which triggers first
-  room.onTeamVictory = function (scores: ScoresObject): void {
+  room.onTeamVictory = async function (scores: ScoresObject): void {
     const winningTeam = scores.red > scores.blue ? 1 : 2;
-    handleMatchEnd(winningTeam);
+    await handleMatchEnd(winningTeam);
     const teamPlayerIdList = winningTeam === 1 ? redPlayerIdList : bluePlayerIdList;
     restartGameWithCallback(() => handleTeamWin(teamPlayerIdList));
   }
 
-  function handleMatchEnd(winningTeam: number) {
+  async function handleMatchEnd(winningTeam: number) {
     const players = room.getPlayerList();
-    players.forEach(p => {
+    for (const p of players) {
       if (p.team !== 0) { // If player was in a team (Red or Blue)
-        updatePlayerStats(p.auth, { matchesPlayed: 1 });
         if (p.team === winningTeam) {
-          updatePlayerStats(p.auth, { wins: 1 });
+          // Increase wins for players in the winning team.
+          await updatePlayerWin(p.name);
         }
       }
-    });
+    }
   }
 
   room.onGameStart = function (): void {
@@ -150,7 +152,7 @@ HaxballJS.then((HBInit) => {
     checkBallTouch();
   }
 
-  room.onPlayerChat = function (player: PlayerObject, message: string): boolean {
+  room.onPlayerChat = async function (player: PlayerObject, message: string): Promise<boolean> {
     console.log(`${player.name}: ${message}`);
     
     // Check if message is a command, bad word or spam
@@ -158,9 +160,9 @@ HaxballJS.then((HBInit) => {
     if (handled) return false; // Suppress default chat
 
     // Custom chat display with rank
-    const stats = getPlayerStats(player);
-    const rank = getRankObject(stats.wins);
-    room.sendAnnouncement(`[${rank.name}] ${player.name}: ${message}`, undefined, rank.color, "normal", 0);
+    const stats = await getPlayerStatsFromDB(player.name);
+    const rankObj = getRankObjectByElo(stats.elo);
+    room.sendAnnouncement(`[${rankObj.name}] ${player.name}: ${message}`, undefined, rankObj.color, "normal", 0);
     
     return false; // Suppress default chat
   }
