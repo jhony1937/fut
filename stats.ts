@@ -59,6 +59,10 @@ export const playerStatsCache = new Map<string, PlayerStats>();
  * Uses an UPSERT pattern to ensure the player exists before returning.
  */
 export async function getPlayerStatsFromDB(playerName: string): Promise<PlayerStats> {
+    if (!playerName || playerName.trim() === "") {
+        return { name: "Unknown", wins: 0, goals: 0, assists: 0, rank: "Unranked", elo: 1000 };
+    }
+    
     try {
         // Step 1: Ensure player exists (UPSERT style)
         await db.query(
@@ -68,13 +72,25 @@ export async function getPlayerStatsFromDB(playerName: string): Promise<PlayerSt
 
         // Step 2: Fetch the record
         const res = await db.query('SELECT * FROM players WHERE name = $1', [playerName]);
+        
+        if (res.rows.length === 0) {
+            // Try case-insensitive if exact match failed (unlikely but possible if ON CONFLICT logic differs)
+            const resLower = await db.query('SELECT * FROM players WHERE LOWER(name) = LOWER($1) LIMIT 1', [playerName]);
+            if (resLower.rows.length > 0) {
+                const stats: PlayerStats = resLower.rows[0];
+                playerStatsCache.set(playerName, stats);
+                return stats;
+            }
+            throw new Error("Player record not found after insertion");
+        }
+
         const stats: PlayerStats = res.rows[0];
         
         // Update cache
         playerStatsCache.set(playerName, stats);
         return stats;
     } catch (err) {
-        console.error("Error fetching/initializing player stats:", err);
+        console.error("Database error in getPlayerStatsFromDB:", err);
         const defaultStats: PlayerStats = { name: playerName, wins: 0, goals: 0, assists: 0, rank: "Unranked", elo: 1000 };
         playerStatsCache.set(playerName, defaultStats);
         return defaultStats;
@@ -96,6 +112,11 @@ export function getRankObjectByElo(elo: number) {
  * Uses an UPSERT pattern to ensure the player exists before updating the rank.
  */
 export async function setPlayerRankInDB(playerName: string, rankName: string) {
+    if (!playerName || playerName.trim() === "") {
+        console.error("Error: Player name is empty in setPlayerRankInDB");
+        return false;
+    }
+    
     try {
         // Step 1: Ensure player exists (UPSERT style)
         await db.query(
@@ -104,14 +125,20 @@ export async function setPlayerRankInDB(playerName: string, rankName: string) {
         );
 
         // Step 2: Update rank
-        await db.query('UPDATE players SET rank = $1 WHERE name = $2', [rankName, playerName]);
+        const res = await db.query('UPDATE players SET rank = $1 WHERE name = $2', [rankName, playerName]);
         
+        if (res.rowCount === 0) {
+            // This might happen if the name was not found due to case sensitivity
+            // Fallback to case-insensitive update
+            await db.query('UPDATE players SET rank = $1 WHERE LOWER(name) = LOWER($2)', [rankName, playerName]);
+        }
+
         // Update cache
         const stats = playerStatsCache.get(playerName);
         if (stats) stats.rank = rankName;
         return true;
     } catch (err) {
-        console.error("Error setting manual rank:", err);
+        console.error("Database error in setPlayerRankInDB:", err);
         return false;
     }
 }
