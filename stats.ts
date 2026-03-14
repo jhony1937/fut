@@ -1,4 +1,4 @@
-import * as db from "./database.js";
+import { supabase } from "./database.js";
 
 /**
  * Interface for tracking player statistics in memory
@@ -65,26 +65,21 @@ export async function getPlayerStatsFromDB(playerName: string): Promise<PlayerSt
     
     try {
         // Step 1: Ensure player exists (UPSERT style)
-        await db.query(
-            'INSERT INTO players(name, wins, goals, assists, rank, elo) VALUES($1, 0, 0, 0, \'Unranked\', 1000) ON CONFLICT(name) DO NOTHING',
-            [playerName]
-        );
+        // We use upsert with 'onConflict' on the 'name' column
+        const { data, error } = await supabase
+            .from('players')
+            .upsert({ name: playerName }, { onConflict: 'name' })
+            .select()
+            .single();
 
-        // Step 2: Fetch the record
-        const res = await db.query('SELECT * FROM players WHERE name = $1', [playerName]);
-        
-        if (res.rows.length === 0) {
-            // Try case-insensitive if exact match failed (unlikely but possible if ON CONFLICT logic differs)
-            const resLower = await db.query('SELECT * FROM players WHERE LOWER(name) = LOWER($1) LIMIT 1', [playerName]);
-            if (resLower.rows.length > 0) {
-                const stats: PlayerStats = resLower.rows[0];
-                playerStatsCache.set(playerName, stats);
-                return stats;
-            }
-            throw new Error("Player record not found after insertion");
+        if (error) {
+            // If the error is that it wasn't found (unlikely with upsert but for safety)
+            // or any other error, we log it.
+            console.error("Supabase error in getPlayerStatsFromDB:", error.message);
+            throw error;
         }
 
-        const stats: PlayerStats = res.rows[0];
+        const stats: PlayerStats = data;
         
         // Update cache
         playerStatsCache.set(playerName, stats);
@@ -115,18 +110,12 @@ export async function setPlayerRankInDB(playerName: string, rankName: string) {
     if (!playerName || playerName.trim() === "") return false;
     
     try {
-        // Step 1: Ensure player exists (Exact pattern requested)
-        await db.query(`INSERT INTO players(name, wins, goals, assists, rank, elo) 
-                        VALUES($1, 0, 0, 0, 'Unranked', 1000) 
-                        ON CONFLICT(name) DO NOTHING`, [playerName]);
+        // Step 1: Ensure player exists and update rank
+        const { error } = await supabase
+            .from('players')
+            .upsert({ name: playerName, rank: rankName }, { onConflict: 'name' });
 
-        // Step 2: Update rank (Exact pattern requested)
-        const res = await db.query(`UPDATE players SET rank = $1 WHERE name = $2`, [rankName, playerName]);
-        
-        // Fallback for case sensitivity
-        if (res.rowCount === 0) {
-            await db.query(`UPDATE players SET rank = $1 WHERE LOWER(name) = LOWER($2)`, [rankName, playerName]);
-        }
+        if (error) throw error;
 
         // Update local cache for immediate chat update
         const stats = playerStatsCache.get(playerName);
@@ -152,10 +141,19 @@ export function getRankObjectByName(rankName: string) {
  */
 export async function updatePlayerGoals(playerName: string) {
     try {
-        await db.query('UPDATE players SET goals = goals + 1 WHERE name = $1', [playerName]);
+        const stats = await getPlayerStatsFromDB(playerName);
+        const newGoals = stats.goals + 1;
+        
+        const { error } = await supabase
+            .from('players')
+            .update({ goals: newGoals })
+            .eq('name', playerName);
+
+        if (error) throw error;
+
         // Update cache if player is online
-        const stats = playerStatsCache.get(playerName);
-        if (stats) stats.goals += 1;
+        const cached = playerStatsCache.get(playerName);
+        if (cached) cached.goals = newGoals;
     } catch (err) {
         console.error("Error updating goals:", err);
     }
@@ -166,10 +164,19 @@ export async function updatePlayerGoals(playerName: string) {
  */
 export async function updatePlayerAssists(playerName: string) {
     try {
-        await db.query('UPDATE players SET assists = assists + 1 WHERE name = $1', [playerName]);
+        const stats = await getPlayerStatsFromDB(playerName);
+        const newAssists = stats.assists + 1;
+
+        const { error } = await supabase
+            .from('players')
+            .update({ assists: newAssists })
+            .eq('name', playerName);
+
+        if (error) throw error;
+
         // Update cache if player is online
-        const stats = playerStatsCache.get(playerName);
-        if (stats) stats.assists += 1;
+        const cached = playerStatsCache.get(playerName);
+        if (cached) cached.assists = newAssists;
     } catch (err) {
         console.error("Error updating assists:", err);
     }
@@ -183,35 +190,36 @@ export async function updatePlayerWin(playerName: string, eloGain: number = 20) 
     try {
         const stats = await getPlayerStatsFromDB(playerName);
         const newElo = stats.elo + eloGain;
+        const newWins = stats.wins + 1;
         
-        let updateQuery: string;
-        let queryParams: any[];
+        let updateData: any = { wins: newWins, elo: newElo };
 
         // Automatic rank progression: only for non-VIP players
         if (stats.rank !== "VIP") {
             const newRankObj = getRankObjectByElo(newElo);
-            updateQuery = 'UPDATE players SET wins = wins + 1, elo = $1, rank = $2 WHERE name = $3';
-            queryParams = [newElo, newRankObj.name, playerName];
+            updateData.rank = newRankObj.name;
             
             const cached = playerStatsCache.get(playerName);
             if (cached) {
-                cached.wins += 1;
+                cached.wins = newWins;
                 cached.elo = newElo;
                 cached.rank = newRankObj.name;
             }
         } else {
             // VIPs keep their rank, only Elo and wins increase
-            updateQuery = 'UPDATE players SET wins = wins + 1, elo = $1 WHERE name = $2';
-            queryParams = [newElo, playerName];
-            
             const cached = playerStatsCache.get(playerName);
             if (cached) {
-                cached.wins += 1;
+                cached.wins = newWins;
                 cached.elo = newElo;
             }
         }
 
-        await db.query(updateQuery, queryParams);
+        const { error } = await supabase
+            .from('players')
+            .update(updateData)
+            .eq('name', playerName);
+
+        if (error) throw error;
     } catch (err) {
         console.error("Error updating win:", err);
     }
@@ -222,10 +230,13 @@ export async function updatePlayerWin(playerName: string, eloGain: number = 20) 
  */
 export async function setPlayerEloInDB(playerName: string, targetElo: number) {
     try {
-        await db.query(
-            'UPDATE players SET elo = $1 WHERE name = $2',
-            [targetElo, playerName]
-        );
+        const { error } = await supabase
+            .from('players')
+            .update({ elo: targetElo })
+            .eq('name', playerName);
+
+        if (error) throw error;
+
         const stats = playerStatsCache.get(playerName);
         if (stats) stats.elo = targetElo;
         return true;
@@ -240,8 +251,14 @@ export async function setPlayerEloInDB(playerName: string, targetElo: number) {
  */
 export async function getTopPlayersFromDB(limit: number = 10): Promise<PlayerStats[]> {
     try {
-        const res = await db.query('SELECT * FROM players ORDER BY elo DESC LIMIT $1', [limit]);
-        return res.rows;
+        const { data, error } = await supabase
+            .from('players')
+            .select('*')
+            .order('elo', { ascending: false })
+            .limit(limit);
+
+        if (error) throw error;
+        return data || [];
     } catch (err) {
         console.error("Error fetching top players:", err);
         return [];
