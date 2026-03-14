@@ -20,9 +20,11 @@ export async function initDatabase() {
       name TEXT UNIQUE,
       wins INTEGER DEFAULT 0,
       goals INTEGER DEFAULT 0,
+      assists INTEGER DEFAULT 0,
       rank TEXT DEFAULT 'Bronze',
       elo INTEGER DEFAULT 1000
     );
+    ALTER TABLE players ADD COLUMN IF NOT EXISTS assists INTEGER DEFAULT 0;
   `;
   try {
     await pool.query(query);
