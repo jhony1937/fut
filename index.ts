@@ -6,7 +6,7 @@ import { handlePlayerLeaving } from "./playerleaving.js";
 import { handleTeamWin } from "./teammanagement.js";
 import { checkAndHandleBadWords, checkAndHandleSpam } from "./moderation.js";
 import { checkAndHandleCommands, isCommand } from "./commands.js";
-import { playerNames, updatePlayerGoals, updatePlayerWin, getRankObjectByElo, playerStatsCache } from "./stats.js";
+import { playerNames, updatePlayerGoals, updatePlayerAssists, updatePlayerWin, getRankObjectByElo, playerStatsCache } from "./stats.js";
 import { initDatabase } from "./database.js";
 
 export const debuggingMode = false;
@@ -94,12 +94,13 @@ HaxballJS.then(async (HBInit) => {
   async function handleGoal(teamId: number) {
     // Update goal and assist stats
     if (lastBallTouch && lastBallTouch.team === teamId) {
+      // The scorer receives +1 goal
       await updatePlayerGoals(lastBallTouch.name);
       room.sendAnnouncement(`⚽ Goal by ${lastBallTouch.name}!`, undefined, 0xFFFF00, "bold", 0);
       
+      // The player who touched the ball before the scorer receives +1 assist
       if (secondLastBallTouch && secondLastBallTouch.team === teamId && secondLastBallTouch.id !== lastBallTouch.id) {
-        // Assist tracking is not explicitly in the user's DB table, 
-        // but let's keep it as an announcement for now.
+        await updatePlayerAssists(secondLastBallTouch.name);
         room.sendAnnouncement(`👟 Assist by ${secondLastBallTouch.name}!`, undefined, 0xFFFF00, "bold", 0);
       }
     }
@@ -159,6 +160,23 @@ HaxballJS.then(async (HBInit) => {
   room.onPlayerChat = function (player: PlayerObject, message: string): boolean {
     console.log(`${player.name}: ${message}`);
     
+    const lowerMsg = message.toLowerCase();
+
+    // Team Chat System: If message starts with "t "
+    if (lowerMsg.startsWith("t ")) {
+      const teamMsg = message.substring(2).trim();
+      if (teamMsg.length > 0) {
+        const teamPlayers = room.getPlayerList().filter(p => p.team === player.team);
+        const prefix = player.team === 0 ? "[SPEC]" : "[TEAM]";
+        const color = player.team === 1 ? 0xFF9999 : (player.team === 2 ? 0x9999FF : 0xCCCCCC); // Red-ish, Blue-ish, or Grey for SPEC
+
+        teamPlayers.forEach(tp => {
+          room.sendAnnouncement(`${prefix} ${player.name}: ${teamMsg}`, tp.id, color, "bold", 0);
+        });
+        return false; // Suppress from global chat
+      }
+    }
+
     // Commands are async but must be handled immediately in terms of chat visibility
     if (isCommand(message)) {
       checkAndHandleCommands(player, message);
