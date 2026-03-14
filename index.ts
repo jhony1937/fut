@@ -206,8 +206,7 @@ HaxballJS.then(async (HBInit) => {
     const rankName = stats ? stats.rank : "Bronze I";
     const rankObj = getRankObjectByName(rankName);
     
-    // VIP Glowing Effect: bold + italic for VIP, bold for others
-    const style = rankName === "VIP" ? "italic" : "normal";
+    // VIP Glowing Effect: bold for all, distinctive color for VIP
     const fontWeight = "bold";
     
     room.sendAnnouncement(`[${rankObj.name}] ${player.name}: ${message}`, undefined, rankObj.color, fontWeight, 0);
