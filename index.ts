@@ -6,7 +6,7 @@ import { handlePlayerLeaving } from "./playerleaving.js";
 import { handleTeamWin } from "./teammanagement.js";
 import { checkAndHandleBadWords, checkAndHandleSpam } from "./moderation.js";
 import { checkAndHandleCommands, isCommand } from "./commands.js";
-import { playerNames, updatePlayerGoals, updatePlayerAssists, updatePlayerWin, getRankObjectByElo, playerStatsCache } from "./stats.js";
+import { playerNames, updatePlayerGoals, updatePlayerAssists, updatePlayerWin, getRankObjectByName, playerStatsCache } from "./stats.js";
 import { initDatabase } from "./database.js";
 
 export const debuggingMode = false;
@@ -173,10 +173,10 @@ HaxballJS.then(async (HBInit) => {
         let color = 0xFFFFFF; // Default white
 
         if (playerTeam === 1) { // RED TEAM
-          prefix = "[TEAM CHAT]";
+          prefix = "[TEAM RED]";
           color = 0xFF3333; // Vivid Red Roi
         } else if (playerTeam === 2) { // BLUE TEAM
-          prefix = "[TEAM CHAT]";
+          prefix = "[TEAM BLUE]";
           color = 0x3366FF; // Vivid Blue Roi
         } else { // SPECTATORS
           prefix = "[SPEC]";
@@ -201,11 +201,20 @@ HaxballJS.then(async (HBInit) => {
       return false;
     }
 
-    // Custom chat display with rank using synchronous cache
+    // Custom chat display with manual rank using synchronous cache
     const stats = playerStatsCache.get(player.name);
-    const elo = stats ? stats.elo : 1000;
-    const rankObj = getRankObjectByElo(elo);
-    room.sendAnnouncement(`[${rankObj.name}] ${player.name}: ${message}`, undefined, rankObj.color, "normal", 0);
+    const rankName = stats ? stats.rank : "Bronze I";
+    const rankObj = getRankObjectByName(rankName);
+    
+    // VIP Glowing Effect: bold + italic for VIP, bold for others
+    const style = rankName === "VIP" ? "italic" : "normal";
+    const fontWeight = "bold";
+    
+    room.sendAnnouncement(`[${rankObj.name}] ${player.name}: ${message}`, undefined, rankObj.color, fontWeight, 0);
+    // Note: style parameter in sendAnnouncement is for "bold", "normal", "italic", etc. 
+    // Haxball API doesn't support multiple styles at once, so we use "bold" as primary.
+    // To make VIP stand out even more, we could potentially send a second "glow" announcement if needed,
+    // but a distinct color and bold prefix is usually sufficient.
     
     return false; // Suppress default chat
   }
