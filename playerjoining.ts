@@ -1,7 +1,7 @@
 import { room, specPlayerIdList, debuggingMode, playerConnStrings, adminAuthList, redPlayerIdList, restartGameWithCallback, bluePlayerIdList } from "./index.js";
 import { checkAndHandleBadWords } from "./moderation.js";
 import { movePlayerToTeam, moveOneSpecToEachTeam } from "./teammanagement.js";
-import { getPlayerStatsFromDB, getRankObjectByElo } from "./stats.js";
+import { getPlayerStatsFromDB, getRankObjectByName } from "./stats.js";
 
 export async function handlePlayerJoining(player: PlayerObject): Promise<void> {
     const playerId: number = player.id;
@@ -13,7 +13,7 @@ export async function handlePlayerJoining(player: PlayerObject): Promise<void> {
     
     // Get stats and rank for join message from database
     const stats = await getPlayerStatsFromDB(playerName);
-    const rankObj = getRankObjectByElo(stats.elo);
+    const rankObj = getRankObjectByName(stats.rank);
     
     // Show [Rank] PlayerName joined the game to everyone
      room.sendAnnouncement(`[${rankObj.name}] ${playerName} joined the game`, undefined, rankObj.color, "bold", 0);
