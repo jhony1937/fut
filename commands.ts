@@ -1,5 +1,5 @@
 import { room } from "./index.js";
-import { getPlayerStatsFromDB, getRankObjectByElo, getTopPlayersFromDB } from "./stats.js";
+import { getPlayerStatsFromDB, getRankObjectByName, getTopPlayersFromDB, setPlayerRankInDB, RANKS } from "./stats.js";
 
 interface Command {
     name: string;
@@ -29,8 +29,8 @@ const commands: Command[] = [
         adminOnly: false,
         response: async (player: PlayerObject) => {
             const stats = await getPlayerStatsFromDB(player.name);
-            const rankObj = getRankObjectByElo(stats.elo);
-            room.sendAnnouncement(`�️ Rank: ${rankObj.name} | Elo: ${stats.elo}`, player.id, rankObj.color, "bold", 0);
+            const rankObj = getRankObjectByName(stats.rank);
+            room.sendAnnouncement(`🎖️ Rank: ${rankObj.name} | Elo: ${stats.elo}`, player.id, rankObj.color, "bold", 0);
         }
     },
     {
@@ -40,7 +40,7 @@ const commands: Command[] = [
         adminOnly: false,
         response: async (player: PlayerObject) => {
             const stats = await getPlayerStatsFromDB(player.name);
-            const rankObj = getRankObjectByElo(stats.elo);
+            const rankObj = getRankObjectByName(stats.rank);
             room.sendAnnouncement(`📊 Player Stats`, player.id, 0x00FFFF, "bold", 0);
             room.sendAnnouncement(`Name: ${player.name}`, player.id, 0xFFFFFF, "bold", 0);
             room.sendAnnouncement(`Rank: ${rankObj.name}`, player.id, rankObj.color, "bold", 0);
@@ -53,18 +53,62 @@ const commands: Command[] = [
     {
         name: "top",
         description: "shows TOP 10 players leaderboard based on Elo",
-        emoji: "�",
+        emoji: "🔝",
         adminOnly: false,
         response: async (player: PlayerObject) => {
             const topPlayers = await getTopPlayersFromDB(10);
-            room.sendAnnouncement("� --- TOP 10 LEADERBOARD (ELO) --- �", player.id, 0xFFFF00, "bold", 0);
+            room.sendAnnouncement("🔝 --- TOP 10 LEADERBOARD (ELO) --- 🔝", player.id, 0xFFFF00, "bold", 0);
             if (topPlayers.length === 0) {
                 room.sendAnnouncement("No data yet.", player.id, 0xFFFFFF, "normal", 0);
             } else {
                 topPlayers.forEach((entry, index) => {
-                    const rankObj = getRankObjectByElo(entry.elo);
+                    const rankObj = getRankObjectByName(entry.rank);
                     room.sendAnnouncement(`${index + 1}. ${entry.name}: ${entry.elo} Elo (${rankObj.name})`, player.id, 0xFFFFFF, "normal", 0);
                 });
+            }
+        }
+    },
+    {
+        name: "setrank",
+        description: "manually set a player's rank (!setrank @player rankName)",
+        emoji: "👑",
+        adminOnly: true,
+        response: async (admin: PlayerObject, args: string[]) => {
+            if (args.length < 2) {
+                room.sendAnnouncement("🚫 Usage: !setrank @PlayerName RankName", admin.id, 0xFF0000, "bold", 0);
+                return;
+            }
+
+            const targetMention = args[0]!;
+            const rankName = args.slice(1).join(" ");
+            const targetName = targetMention.startsWith("@") ? targetMention.substring(1) : targetMention;
+
+            // Find player in the room
+            const targetPlayer = room.getPlayerList().find(p => p.name.toLowerCase() === targetName.toLowerCase());
+
+            if (!targetPlayer) {
+                room.sendAnnouncement(`🚫 Player @${targetName} not found.`, admin.id, 0xFF0000, "bold", 0);
+                return;
+            }
+
+            // Validate rank
+            const rankObj = RANKS.find(r => r.name.toLowerCase() === rankName.toLowerCase());
+            if (!rankObj) {
+                room.sendAnnouncement(`🚫 Invalid rank. Available ranks: Bronze I-III, Silver I-III, Gold I-III, Platinum I-III, Diamond I-III, VIP.`, admin.id, 0xFF0000, "bold", 0);
+                return;
+            }
+
+            const success = await setPlayerRankInDB(targetPlayer.name, rankObj.name);
+            if (success) {
+                const isVIP = rankObj.name === "VIP";
+                const messageColor = isVIP ? 0xFFFF00 : 0x00FF00;
+                room.sendAnnouncement(`✅ Player @${targetPlayer.name} is now ${rankObj.name}.`, undefined, messageColor, "bold", 0);
+                
+                if (isVIP) {
+                    room.sendAnnouncement(`✨ GLOW: @${targetPlayer.name} has received VIP status! ✨`, undefined, 0xFFFF00, "bold", 0);
+                }
+            } else {
+                room.sendAnnouncement(`🚫 Database error while setting rank.`, admin.id, 0xFF0000, "bold", 0);
             }
         }
     },
