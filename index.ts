@@ -6,7 +6,7 @@ import { handlePlayerLeaving } from "./playerleaving.js";
 import { handleTeamWin } from "./teammanagement.js";
 import { checkAndHandleBadWords, checkAndHandleSpam } from "./moderation.js";
 import { checkAndHandleCommands, isCommand } from "./commands.js";
-import { playerNames, getPlayerStatsFromDB, updatePlayerGoals, updatePlayerWin, getRankObjectByElo, playerStatsCache } from "./stats.js";
+import { playerNames, updatePlayerGoals, updatePlayerWin, getRankObjectByElo, playerStatsCache } from "./stats.js";
 import { initDatabase } from "./database.js";
 
 export const debuggingMode = false;
