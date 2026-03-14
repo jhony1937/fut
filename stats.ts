@@ -14,15 +14,25 @@ export interface PlayerStats {
 }
 
 /**
- * Ranking thresholds based on Elo points with colors
+ * Manual ranking definitions with specific hex colors
  */
 export const RANKS = [
-    { name: "Bronze", minElo: 0, maxElo: 999, color: 0xCD7F32 },      // Brown
-    { name: "Silver", minElo: 1000, maxElo: 1499, color: 0xD3D3D3 },   // Light Grey
-    { name: "Gold", minElo: 1500, maxElo: 1999, color: 0xFFD700 },     // Clean Gold
-    { name: "Platinum", minElo: 2000, maxElo: 2499, color: 0x00FFFF }, // Light Cyan
-    { name: "Diamond", minElo: 2500, maxElo: 2999, color: 0x1E90FF },  // Bright Blue
-    { name: "Champion", minElo: 3000, maxElo: Infinity, color: 0xFF0000 } // Strong Closed Red
+    { name: "Bronze I", color: 0xCD7F32 },
+    { name: "Bronze II", color: 0xCD7F32 },
+    { name: "Bronze III", color: 0xCD7F32 },
+    { name: "Silver I", color: 0xC0C0C0 },
+    { name: "Silver II", color: 0xC0C0C0 },
+    { name: "Silver III", color: 0xC0C0C0 },
+    { name: "Gold I", color: 0xFFD700 },
+    { name: "Gold II", color: 0xFFD700 },
+    { name: "Gold III", color: 0xFFD700 },
+    { name: "Platinum I", color: 0xE5E4E2 },
+    { name: "Platinum II", color: 0xE5E4E2 },
+    { name: "Platinum III", color: 0xE5E4E2 },
+    { name: "Diamond I", color: 0xB9F2FF },
+    { name: "Diamond II", color: 0xB9F2FF },
+    { name: "Diamond III", color: 0xB9F2FF },
+    { name: "VIP", color: 0xFFFF00 } // Flashy/Glow color
 ];
 
 /**
@@ -65,17 +75,32 @@ export async function getPlayerStatsFromDB(playerName: string): Promise<PlayerSt
         return stats;
     } catch (err) {
         console.error("Error fetching/inserting player stats:", err);
-        const defaultStats: PlayerStats = { name: playerName, wins: 0, goals: 0, assists: 0, rank: "Bronze", elo: 1000 };
+        const defaultStats: PlayerStats = { name: playerName, wins: 0, goals: 0, assists: 0, rank: "Bronze I", elo: 1000 };
         playerStatsCache.set(playerName, defaultStats);
         return defaultStats;
     }
 }
 
 /**
- * Determines the rank name and color based on Elo count
+ * Updates a player's rank manually in the database.
  */
-export function getRankObjectByElo(elo: number) {
-    const rank = RANKS.find(r => elo >= r.minElo && elo <= r.maxElo);
+export async function setPlayerRankInDB(playerName: string, rankName: string) {
+    try {
+        await db.query('UPDATE players SET rank = $1 WHERE name = $2', [rankName, playerName]);
+        const stats = playerStatsCache.get(playerName);
+        if (stats) stats.rank = rankName;
+        return true;
+    } catch (err) {
+        console.error("Error setting manual rank:", err);
+        return false;
+    }
+}
+
+/**
+ * Determines the rank object based on the rank name
+ */
+export function getRankObjectByName(rankName: string) {
+    const rank = RANKS.find(r => r.name.toLowerCase() === rankName.toLowerCase());
     return rank || RANKS[0]!;
 }
 
@@ -115,20 +140,15 @@ export async function updatePlayerWin(playerName: string, eloGain: number = 20) 
         // Fetch current Elo to update rank if needed
         const stats = await getPlayerStatsFromDB(playerName);
         const newElo = stats.elo + eloGain;
-        const newRankObj = getRankObjectByElo(newElo);
-
+        // Manual rank system: do not update rank based on Elo
         await db.query(
-            'UPDATE players SET wins = wins + 1, elo = $1, rank = $2 WHERE name = $3',
-            [newElo, newRankObj.name, playerName]
+            'UPDATE players SET wins = wins + 1, elo = $1 WHERE name = $2',
+            [newElo, playerName]
         );
-        // getPlayerStatsFromDB already updates the cache, but we need to update the wins/elo/rank manually here 
-        // to avoid another DB call if we wanted to be super efficient, but getPlayerStatsFromDB is fine.
-        // Actually, let's just update the cache directly.
         const cached = playerStatsCache.get(playerName);
         if (cached) {
             cached.wins += 1;
             cached.elo = newElo;
-            cached.rank = newRankObj.name;
         }
     } catch (err) {
         console.error("Error updating win:", err);
@@ -136,18 +156,19 @@ export async function updatePlayerWin(playerName: string, eloGain: number = 20) 
 }
 
 /**
- * Directly updates Elo and Rank for the !setrank command (if still used)
+ * Updates Elo for the !setelo command (if still used)
  */
-export async function setPlayerEloAndRank(playerName: string, targetElo: number) {
-    const rankObj = getRankObjectByElo(targetElo);
+export async function setPlayerEloInDB(playerName: string, targetElo: number) {
     try {
         await db.query(
-            'UPDATE players SET elo = $1, rank = $2 WHERE name = $3',
-            [targetElo, rankObj.name, playerName]
+            'UPDATE players SET elo = $1 WHERE name = $2',
+            [targetElo, playerName]
         );
+        const stats = playerStatsCache.get(playerName);
+        if (stats) stats.elo = targetElo;
         return true;
     } catch (err) {
-        console.error("Error setting rank manually:", err);
+        console.error("Error setting Elo manually:", err);
         return false;
     }
 }
