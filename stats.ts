@@ -8,6 +8,7 @@ export interface PlayerStats {
     name: string;
     wins: number;
     goals: number;
+    assists: number;
     rank: string;
     elo: number;
 }
@@ -16,11 +17,12 @@ export interface PlayerStats {
  * Ranking thresholds based on Elo points with colors
  */
 export const RANKS = [
-    { name: "Bronze", minElo: 0, maxElo: 999, color: 0xCD7F32 },
-    { name: "Silver", minElo: 1000, maxElo: 1499, color: 0xC0C0C0 },
-    { name: "Gold", minElo: 1500, maxElo: 1999, color: 0xFFD700 },
-    { name: "Platinum", minElo: 2000, maxElo: 2499, color: 0xE5E4E2 },
-    { name: "Diamond", minElo: 2500, maxElo: Infinity, color: 0xB9F2FF }
+    { name: "Bronze", minElo: 0, maxElo: 999, color: 0xCD7F32 },      // Brown
+    { name: "Silver", minElo: 1000, maxElo: 1499, color: 0xD3D3D3 },   // Light Grey
+    { name: "Gold", minElo: 1500, maxElo: 1999, color: 0xFFD700 },     // Clean Gold
+    { name: "Platinum", minElo: 2000, maxElo: 2499, color: 0x00FFFF }, // Light Cyan
+    { name: "Diamond", minElo: 2500, maxElo: 2999, color: 0x1E90FF },  // Bright Blue
+    { name: "Champion", minElo: 3000, maxElo: Infinity, color: 0xFF0000 } // Strong Closed Red
 ];
 
 /**
@@ -63,7 +65,7 @@ export async function getPlayerStatsFromDB(playerName: string): Promise<PlayerSt
         return stats;
     } catch (err) {
         console.error("Error fetching/inserting player stats:", err);
-        const defaultStats = { name: playerName, wins: 0, goals: 0, rank: "Bronze", elo: 1000 };
+        const defaultStats: PlayerStats = { name: playerName, wins: 0, goals: 0, assists: 0, rank: "Bronze", elo: 1000 };
         playerStatsCache.set(playerName, defaultStats);
         return defaultStats;
     }
@@ -88,6 +90,20 @@ export async function updatePlayerGoals(playerName: string) {
         if (stats) stats.goals += 1;
     } catch (err) {
         console.error("Error updating goals:", err);
+    }
+}
+
+/**
+ * Updates a player's assist count in the database.
+ */
+export async function updatePlayerAssists(playerName: string) {
+    try {
+        await db.query('UPDATE players SET assists = assists + 1 WHERE name = $1', [playerName]);
+        // Update cache if player is online
+        const stats = playerStatsCache.get(playerName);
+        if (stats) stats.assists += 1;
+    } catch (err) {
+        console.error("Error updating assists:", err);
     }
 }
 
