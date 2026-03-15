@@ -55,6 +55,19 @@ export const playerNames = new Map<string, string>();
 export const playerStatsCache = new Map<string, PlayerStats>();
 
 /**
+ * "iknow" Scorer System: tracks player IDs who have scored
+ */
+export const iknowScorers = new Set<number>();
+
+/**
+ * Adds a player to the "iknow" scorer system using their player ID as the user
+ */
+export function addPlayerToIKnow(playerId: number) {
+    iknowScorers.add(playerId);
+    console.log(`[iknow] Player ID ${playerId} added to the system.`);
+}
+
+/**
  * Retrieves or initializes stats for a player from the database.
  * Uses an UPSERT pattern to ensure the player exists before returning.
  */
