@@ -34,7 +34,7 @@ export let room: RoomObject;
 HaxballJS.then(async (HBInit) => {
   await initDatabase();
   room = HBInit({
-    roomName: "⚖️ FUTSAL Testing ⚖️",
+    roomName: "🟨 ✪ 𝑴𝑫𝑿 | 𝑭𝑼𝑻𝑺𝑨𝑳 3v3 | 𝑹𝑨𝑵𝑲𝑬𝑫 ✪ 🟨",
     maxPlayers: 20,
     public: false,
     noPlayer: true,
@@ -178,10 +178,10 @@ HaxballJS.then(async (HBInit) => {
         let color = 0xFFFFFF; // Default white
 
         if (playerTeam === 1) { // RED TEAM
-          prefix = "[TEAM RED]";
+          prefix = "[TEAM CHAT]";
           color = 0xFF3333; // Vivid Red Roi
         } else if (playerTeam === 2) { // BLUE TEAM
-          prefix = "[TEAM BLUE]";
+          prefix = "[TEAM CHAT]";
           color = 0x3366FF; // Vivid Blue Roi
         } else { // SPECTATORS
           prefix = "[SPEC]";
