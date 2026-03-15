@@ -19,49 +19,48 @@ interface Command {
 }
 
 /**
- * Configuration for National Team Kits
- * Format: [angle, textColor, [color1, color2, color3]]
+ * Configuration for National Team Kits (Simplified to one main color)
+ * Format: [angle, textColor, [mainColor]]
  */
 const KITS: { [key: string]: { name: string, flag: string, colors: [number, number, number[]] } } = {
-    mar: { name: "Morocco", flag: "🇲🇦", colors: [90, 0xFFFFFF, [0xC1272D, 0x006233]] }, // Red shirt, green accent
-    bra: { name: "Brazil", flag: "🇧🇷", colors: [90, 0x002776, [0xFEDF00, 0x009739]] },  // Yellow shirt, green accent
-    arg: { name: "Argentina", flag: "🇦🇷", colors: [90, 0x000000, [0x75AADB, 0xFFFFFF]] }, // Sky blue and white stripes
-    alg: { name: "Algeria", flag: "🇩🇿", colors: [90, 0x006233, [0xFFFFFF, 0x006233]] },   // White shirt, green accent
-    esp: { name: "Spain", flag: "🇪🇸", colors: [90, 0xFFFFFF, [0xC1272D, 0xFFD700]] },   // Red and yellow
-    fra: { name: "France", flag: "🇫🇷", colors: [90, 0xFFFFFF, [0x002395, 0xFFFFFF, 0xED2939]] }, // Blue, white, red
-    por: { name: "Portugal", flag: "🇵🇹", colors: [90, 0xFFFFFF, [0xC1272D, 0x006233, 0xFFD700]] }, // Red, green, gold
-    ger: { name: "Germany", flag: "🇩🇪", colors: [90, 0x000000, [0xFFFFFF, 0x000000, 0xFFCE00]] }, // White, black, gold
-    eng: { name: "England", flag: "🏴", colors: [90, 0x000033, [0xFFFFFF, 0xCF081F]] }, // White and red
-    ita: { name: "Italy", flag: "🇮🇹", colors: [90, 0xFFFFFF, [0x004D98, 0xFFFFFF]] }    // Azure blue and white
+    mar: { name: "Morocco", flag: "🇲🇦", colors: [90, 0xFFFFFF, [0xC1272D]] }, // Red
+    bra: { name: "Brazil", flag: "🇧🇷", colors: [90, 0x002776, [0xFEDF00]] },  // Yellow
+    alg: { name: "Algeria", flag: "��", colors: [90, 0xFFFFFF, [0x006233]] }, // Green
+    ita: { name: "Italy", flag: "🇮🇹", colors: [90, 0xFFFFFF, [0x004D98]] },    // Blue
+    arg: { name: "Argentina", flag: "��", colors: [90, 0x000000, [0x75AADB]] }, // Sky Blue
+    esp: { name: "Spain", flag: "🇪🇸", colors: [90, 0xFFFFFF, [0xC1272D]] },   // Red
+    fra: { name: "France", flag: "🇫🇷", colors: [90, 0xFFFFFF, [0x002395]] },   // Blue
+    por: { name: "Portugal", flag: "🇵🇹", colors: [90, 0xFFFFFF, [0x006233]] }, // Green
+    ger: { name: "Germany", flag: "🇩🇪", colors: [90, 0xFFFFFF, [0x000000]] }, // Black
+    eng: { name: "England", flag: "🏴", colors: [90, 0x000033, [0xFFFFFF]] }  // White
 };
 
 const commands: Command[] = [
     // --- NATIONAL TEAM KITS ---
     ...Object.entries(KITS).map(([cmd, kit]) => ({
         name: cmd,
-        description: `changer la tenue pour ${kit.name}`,
+        description: `Changer la tenue pour ${kit.name}`,
         emoji: "👕",
         adminOnly: false,
         response: async (player: PlayerObject, _args: string[]) => {
-            const team = player.team;
-            if (team === 1 || team === 2) {
-                room.setTeamColors(team, ...kit.colors);
-                room.sendAnnouncement(`👕 Tenue ${kit.name} ${kit.flag} appliquée par ${player.name} !`, undefined, 0xFFFF00, "bold", 0);
-            } else {
+            if (player.team === 0) {
                 room.sendAnnouncement(`🚫 Vous devez rejoindre une équipe pour changer de tenue.`, player.id, 0xFF0000, "bold", 0);
+                return;
             }
+            // Apply to both teams
+            room.setTeamColors(1, ...kit.colors);
+            room.setTeamColors(2, ...kit.colors);
+            room.sendAnnouncement(`👕 Tenue ${kit.name} ${kit.flag} appliquée aux deux équipes par ${player.name} !`, undefined, 0xFFFF00, "bold", 0);
         }
     })),
     {
         name: "tenue",
-        description: "afficher les tenues nationales disponibles",
+        description: "Afficher toutes les tenues disponibles",
         emoji: "⭐",
         adminOnly: false,
         response: async (player: PlayerObject) => {
-            room.sendAnnouncement("⭐ Tenues disponibles :", player.id, 0xFFFF00, "bold", 0);
-            Object.entries(KITS).forEach(([cmd, kit]) => {
-                room.sendAnnouncement(`!${cmd} ${kit.flag}`, player.id, 0xFFFFFF, "normal", 0);
-            });
+            const list = Object.entries(KITS).map(([cmd, kit]) => `!${cmd} ${kit.flag}`).join(" ");
+            room.sendAnnouncement(`⭐ Tenues disponibles: ${list}`, player.id, 0xFFFF00, "bold", 0);
         }
     },
     {
