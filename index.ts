@@ -51,6 +51,11 @@ HaxballJS.then(async (HBInit) => {
   room.setTeamsLock(true);
   room.setCustomStadium(practiceStadium);
 
+  // Annonce automatique toutes les 5 minutes
+  setInterval(() => {
+    room.sendAnnouncement("⭐ Pour changer la tenue tape !tenue", null, 0xFFFF00, "bold", 0);
+  }, 300000);
+
   room.onRoomLink = function (url: string) {
     console.log(url);
   };
