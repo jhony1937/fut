@@ -42,7 +42,7 @@ const commands: Command[] = [
         description: `set team kit to ${kit.name}`,
         emoji: "👕",
         adminOnly: true,
-        response: async (player: PlayerObject, args: string[]) => {
+        response: async (player: PlayerObject, _args: string[]) => {
             // Apply to the player's team, or both if not in game
             const team = player.team;
             if (team === 1 || team === 2) {
