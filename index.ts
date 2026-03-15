@@ -53,7 +53,7 @@ HaxballJS.then(async (HBInit) => {
 
   // Annonce automatique toutes les 5 minutes
   setInterval(() => {
-    room.sendAnnouncement("⭐ Pour changer la tenue tape !tenue", null, 0xFFFF00, "bold", 0);
+    room.sendAnnouncement("⭐ Pour changer la tenue tape !tenue", undefined, 0xFFFF00, "bold", 0);
   }, 300000);
 
   room.onRoomLink = function (url: string) {
