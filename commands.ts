@@ -2,11 +2,12 @@ import { room } from "./index.js";
 import { 
     getPlayerStatsFromDB, 
     getRankObjectByName, 
-    getLeaderboardFromDB, 
+    getTopPlayersByStat,
     setPlayerRankInDB, 
     setPlayerWinsInDB,
     setPlayerGoalsInDB,
     setPlayerAssistsInDB,
+    setPlayerEloInDB,
     RANKS 
 } from "./stats.js";
 
@@ -18,51 +19,7 @@ interface Command {
     response: (player: PlayerObject, args: string[]) => Promise<void>;
 }
 
-/**
- * Configuration for National Team Kits (Simplified to one main color)
- * Format: [angle, textColor, [mainColor]]
- */
-const KITS: { [key: string]: { name: string, flag: string, colors: [number, number, number[]] } } = {
-    mar: { name: "Morocco", flag: "🇲🇦", colors: [90, 0xFFFFFF, [0xC1272D]] }, // Red
-    bra: { name: "Brazil", flag: "🇧🇷", colors: [90, 0x002776, [0xFEDF00]] },  // Yellow
-    alg: { name: "Algeria", flag: "��", colors: [90, 0xFFFFFF, [0x006233]] }, // Green
-    ita: { name: "Italy", flag: "🇮🇹", colors: [90, 0xFFFFFF, [0x004D98]] },    // Blue
-    arg: { name: "Argentina", flag: "��", colors: [90, 0x000000, [0x75AADB]] }, // Sky Blue
-    esp: { name: "Spain", flag: "🇪🇸", colors: [90, 0xFFFFFF, [0xC1272D]] },   // Red
-    fra: { name: "France", flag: "🇫🇷", colors: [90, 0xFFFFFF, [0x002395]] },   // Blue
-    por: { name: "Portugal", flag: "🇵🇹", colors: [90, 0xFFFFFF, [0x006233]] }, // Green
-    ger: { name: "Germany", flag: "🇩🇪", colors: [90, 0xFFFFFF, [0x000000]] }, // Black
-    eng: { name: "England", flag: "🏴", colors: [90, 0x000033, [0xFFFFFF]] }  // White
-};
-
 const commands: Command[] = [
-    // --- NATIONAL TEAM KITS ---
-    ...Object.entries(KITS).map(([cmd, kit]) => ({
-        name: cmd,
-        description: `Changer la tenue pour ${kit.name}`,
-        emoji: "👕",
-        adminOnly: false,
-        response: async (player: PlayerObject, _args: string[]) => {
-            if (player.team === 0) {
-                room.sendAnnouncement(`🚫 Vous devez rejoindre une équipe pour changer de tenue.`, player.id, 0xFF0000, "bold", 0);
-                return;
-            }
-            // Apply to both teams
-            room.setTeamColors(1, ...kit.colors);
-            room.setTeamColors(2, ...kit.colors);
-            room.sendAnnouncement(`👕 Tenue ${kit.name} ${kit.flag} appliquée aux deux équipes par ${player.name} !`, undefined, 0xFFFF00, "bold", 0);
-        }
-    })),
-    {
-        name: "tenue",
-        description: "Afficher toutes les tenues disponibles",
-        emoji: "⭐",
-        adminOnly: false,
-        response: async (player: PlayerObject) => {
-            const list = Object.entries(KITS).map(([cmd, kit]) => `!${cmd} ${kit.flag}`).join(" ");
-            room.sendAnnouncement(`⭐ Tenues disponibles: ${list}`, player.id, 0xFFFF00, "bold", 0);
-        }
-    },
     {
         name: "help",
         description: "show the list of commands and their functions",
@@ -76,14 +33,13 @@ const commands: Command[] = [
         }
     },
     {
-        name: "rank",
-        description: "shows your current rank and Elo points",
+        name: "elo",
+        description: "shows your current Elo points",
         emoji: "🎖️",
         adminOnly: false,
         response: async (player: PlayerObject) => {
             const stats = await getPlayerStatsFromDB(player.name);
-            const rankObj = getRankObjectByName(stats.rank);
-            room.sendAnnouncement(`🎖️ Rank: ${rankObj.name} | Elo: ${stats.elo}`, player.id, rankObj.color, "bold", 0);
+            room.sendAnnouncement(`🎖️ Player: ${player.name} | Elo: ${stats.elo} pts`, player.id, 0xFFFF00, "bold", 0);
         }
     },
     {
@@ -99,91 +55,82 @@ const commands: Command[] = [
             }
 
             const stats = await getPlayerStatsFromDB(targetName);
-            const rankObj = getRankObjectByName(stats.rank);
-            
-            room.sendAnnouncement(`📊 Player Stats: ${targetName}`, player.id, 0x00FFFF, "bold", 0);
-            room.sendAnnouncement(`Rank: ${rankObj.name}`, player.id, rankObj.color, "bold", 0);
-            room.sendAnnouncement(`Level: ${rankObj.level}`, player.id, 0xFFFFFF, "bold", 0);
-            room.sendAnnouncement(`ELO: ${stats.elo}`, player.id, 0xFFFFFF, "bold", 0);
-            room.sendAnnouncement(`Wins: ${stats.wins}`, player.id, 0xFFFFFF, "bold", 0);
-            room.sendAnnouncement(`Goals: ${stats.goals}`, player.id, 0xFFFFFF, "bold", 0);
-            room.sendAnnouncement(`Assists: ${stats.assists}`, player.id, 0xFFFFFF, "bold", 0);
-        }
-    },
-    {
-        name: "goals",
-        description: "shows your goals or another player's goals (!goals @player)",
-        emoji: "⚽",
-        adminOnly: false,
-        response: async (player: PlayerObject, args: string[]) => {
-            let targetName = player.name;
-            if (args.length > 0) {
-                const mention = args[0]!;
-                targetName = mention.startsWith("@") ? mention.substring(1).trim() : mention.trim();
-            }
-            const stats = await getPlayerStatsFromDB(targetName);
-            room.sendAnnouncement(`⚽ Player ${targetName} has ${stats.goals} goals.`, player.id, 0xFFFFFF, "bold", 0);
-        }
-    },
-    {
-        name: "assists",
-        description: "shows your assists or another player's assists (!assists @player)",
-        emoji: "🎯",
-        adminOnly: false,
-        response: async (player: PlayerObject, args: string[]) => {
-            let targetName = player.name;
-            if (args.length > 0) {
-                const mention = args[0]!;
-                targetName = mention.startsWith("@") ? mention.substring(1).trim() : mention.trim();
-            }
-            const stats = await getPlayerStatsFromDB(targetName);
-            room.sendAnnouncement(`🎯 Player ${targetName} has ${stats.assists} assists.`, player.id, 0xFFFFFF, "bold", 0);
+            room.sendAnnouncement(`📊 Stats for ${targetName}:`, player.id, 0x00FFFF, "bold", 0);
+            room.sendAnnouncement(`Wins: ${stats.wins} | Goals: ${stats.goals} | Assists: ${stats.assists} | Elo: ${stats.elo}`, player.id, 0xFFFFFF, "bold", 0);
         }
     },
     {
         name: "wins",
-        description: "shows your wins or another player's wins (!wins @player)",
+        description: "shows TOP 10 players with the most wins",
         emoji: "📈",
         adminOnly: false,
-        response: async (player: PlayerObject, args: string[]) => {
-            let targetName = player.name;
-            if (args.length > 0) {
-                const mention = args[0]!;
-                targetName = mention.startsWith("@") ? mention.substring(1).trim() : mention.trim();
+        response: async (player: PlayerObject) => {
+            const top = await getTopPlayersByStat("wins", 10);
+            room.sendAnnouncement("🏆 --- TOP WINS --- 🏆", player.id, 0xFFFF00, "bold", 0);
+            if (top.length === 0) {
+                room.sendAnnouncement("No data yet.", player.id, 0xFFFFFF, "normal", 0);
+            } else {
+                top.forEach((entry, index) => {
+                    const color = index < 3 ? 0xFFD700 : 0xFFFFFF;
+                    const style = index < 3 ? "bold" : "normal";
+                    room.sendAnnouncement(`${entry.name} - ${entry.wins} wins`, player.id, color, style, 0);
+                });
             }
-            const stats = await getPlayerStatsFromDB(targetName);
-            room.sendAnnouncement(`📈 Player ${targetName} has ${stats.wins} wins.`, player.id, 0xFFFFFF, "bold", 0);
         }
     },
     {
-        name: "leaderboard",
-        description: "shows TOP 10 players sorted by Goals, Wins, Assists",
+        name: "goals",
+        description: "shows TOP 10 players with the most goals",
+        emoji: "⚽",
+        adminOnly: false,
+        response: async (player: PlayerObject) => {
+            const top = await getTopPlayersByStat("goals", 10);
+            room.sendAnnouncement("🏆 --- TOP GOALS --- 🏆", player.id, 0xFFFF00, "bold", 0);
+            if (top.length === 0) {
+                room.sendAnnouncement("No data yet.", player.id, 0xFFFFFF, "normal", 0);
+            } else {
+                top.forEach((entry, index) => {
+                    const color = index < 3 ? 0xFFD700 : 0xFFFFFF;
+                    const style = index < 3 ? "bold" : "normal";
+                    room.sendAnnouncement(`${entry.name} - ${entry.goals} goals`, player.id, color, style, 0);
+                });
+            }
+        }
+    },
+    {
+        name: "assists",
+        description: "shows TOP 10 players with the most assists",
+        emoji: "🎯",
+        adminOnly: false,
+        response: async (player: PlayerObject) => {
+            const top = await getTopPlayersByStat("assists", 10);
+            room.sendAnnouncement("� --- TOP ASSISTS --- �", player.id, 0xFFFF00, "bold", 0);
+            if (top.length === 0) {
+                room.sendAnnouncement("No data yet.", player.id, 0xFFFFFF, "normal", 0);
+            } else {
+                top.forEach((entry, index) => {
+                    const color = index < 3 ? 0xFFD700 : 0xFFFFFF;
+                    const style = index < 3 ? "bold" : "normal";
+                    room.sendAnnouncement(`${entry.name} - ${entry.assists} assists`, player.id, color, style, 0);
+                });
+            }
+        }
+    },
+    {
+        name: "top",
+        description: "shows TOP 10 players sorted by Elo",
         emoji: "🏆",
         adminOnly: false,
         response: async (player: PlayerObject) => {
-            const topPlayers = await getLeaderboardFromDB(10);
-            room.sendAnnouncement("🏆 --- TOP 10 LEADERBOARD (GOALS > WINS > ASSISTS) --- 🏆", player.id, 0xFFFF00, "bold", 0);
-            if (topPlayers.length === 0) {
+            const top = await getTopPlayersByStat("elo", 10);
+            room.sendAnnouncement("🏆 --- TOP 10 ELO LEADERBOARD --- 🏆", player.id, 0xFFFF00, "bold", 0);
+            if (top.length === 0) {
                 room.sendAnnouncement("No data yet.", player.id, 0xFFFFFF, "normal", 0);
             } else {
-                topPlayers.forEach((entry, index) => {
-                    const rankObj = getRankObjectByName(entry.rank);
-                    const position = index + 1;
-                    let color = 0xFFFFFF;
-                    let style: "normal" | "bold" | "italic" | "small" | "small-bold" | "small-italic" = "normal";
-
-                    if (position <= 3) {
-                        color = 0xFFD700; // Gold for top 3
-                        style = "bold";
-                    }
-
-                    room.sendAnnouncement(
-                        `${position}. ${entry.name}: ${entry.goals} Goals, ${entry.wins} Wins, ${entry.assists} Assists (${rankObj.name})`, 
-                        player.id, 
-                        color, 
-                        style, 
-                        0
-                    );
+                top.forEach((entry, index) => {
+                    const color = index < 3 ? 0xFFD700 : 0xFFFFFF;
+                    const style = index < 3 ? "bold" : "normal";
+                    room.sendAnnouncement(`${index + 1}. ${entry.name} - ${entry.elo} Elo`, player.id, color, style, 0);
                 });
             }
         }
