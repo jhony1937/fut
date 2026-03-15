@@ -34,7 +34,7 @@ export let room: RoomObject;
 HaxballJS.then(async (HBInit) => {
   await initDatabase();
   room = HBInit({
-    roomName: "🟨 𝑴𝑫𝑿 | 𝑭𝑼𝑻𝑺𝑨𝑳 3v3 | Ranked  🟨",
+    roomName: "🟨 MDX | Futsal 3v3 | Ranked 🟨",
     maxPlayers: 20,
     public: true,
     noPlayer: true,
