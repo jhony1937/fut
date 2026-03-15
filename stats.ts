@@ -311,22 +311,20 @@ export async function setPlayerAssistsInDB(playerName: string, assists: number):
 }
 
 /**
- * Gets the top players for the leaderboard ordered by Goals, Wins, then Assists
+ * Gets top players ordered by a specific stat
  */
-export async function getLeaderboardFromDB(limit: number = 10): Promise<PlayerStats[]> {
+export async function getTopPlayersByStat(stat: "elo" | "wins" | "goals" | "assists", limit: number = 10): Promise<PlayerStats[]> {
     try {
         const { data, error } = await supabase
             .from('players')
             .select('*')
-            .order('goals', { ascending: false })
-            .order('wins', { ascending: false })
-            .order('assists', { ascending: false })
+            .order(stat, { ascending: false })
             .limit(limit);
 
         if (error) throw error;
         return data || [];
     } catch (err) {
-        console.error("Error fetching leaderboard:", err);
+        console.error(`Error fetching top players by ${stat}:`, err);
         return [];
     }
 }
