@@ -9,8 +9,9 @@ const rateLimitTimeSpan = 4000;
 export function checkAndHandleSpam(player: PlayerObject, message: string): boolean {
     const playerId: number = player.id;
     if (!isCommand(message) && (isPlayerAboveRateLimit(playerId) || is3rdConsecutiveMessage(playerId, message))) {
-        room.kickPlayer(playerId, "Spam", false);
-        console.warn(`>>> ${player.name} was kicked. Reason: spam.`);
+        // Warning message instead of kick
+        room.sendAnnouncement("⚠Spam is not allowed. Next time you will be kicked.⚠", playerId, 0xFF0000, "bold", 2);
+        console.warn(`>>> ${player.name} was warned for spam.`);
         return true;
     }
     return false;
