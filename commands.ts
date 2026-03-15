@@ -1,13 +1,11 @@
 import { room } from "./index.js";
 import { 
     getPlayerStatsFromDB, 
-    getRankObjectByName, 
     getTopPlayersByStat,
     setPlayerRankInDB, 
     setPlayerWinsInDB,
     setPlayerGoalsInDB,
     setPlayerAssistsInDB,
-    setPlayerEloInDB,
     RANKS 
 } from "./stats.js";
 
