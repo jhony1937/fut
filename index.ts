@@ -34,7 +34,7 @@ export let room: RoomObject;
 HaxballJS.then(async (HBInit) => {
   await initDatabase();
   room = HBInit({
-    roomName: "🟨 MDX | Futsal 3v3 | Ranked 🟨",
+    roomName: "⚖️ FUTSAL Testing ⚖️",
     maxPlayers: 20,
     public: false,
     noPlayer: true,
@@ -50,11 +50,6 @@ HaxballJS.then(async (HBInit) => {
   room.setTimeLimit(timeLimit);
   room.setTeamsLock(true);
   room.setCustomStadium(practiceStadium);
-
-  // Annonce automatique toutes les 5 minutes
-  setInterval(() => {
-    room.sendAnnouncement("⭐ Pour changer la tenue tape !tenue", undefined, 0xFFFF00, "bold", 0);
-  }, 300000);
 
   room.onRoomLink = function (url: string) {
     console.log(url);
