@@ -92,18 +92,32 @@ HaxballJS.then(async (HBInit) => {
   }
 
   async function handleGoal(teamId: number) {
+    const ballProps = room.getDiscProperties(0);
+    const speed = ballProps ? Math.sqrt(ballProps.xspeed * ballProps.xspeed + ballProps.yspeed * ballProps.yspeed) * 100 : 0;
+    const speedFormatted = Math.round(speed);
+
+    let scorerName = "Unknown";
+    let assistantName = "None";
+
     // Update goal and assist stats
     if (lastBallTouch && lastBallTouch.team === teamId) {
+      scorerName = lastBallTouch.name;
       // The scorer receives +1 goal
-      await updatePlayerGoals(lastBallTouch.name);
-      room.sendAnnouncement(`⚽ Goal by ${lastBallTouch.name}!`, undefined, 0xFFFF00, "bold", 0);
+      await updatePlayerGoals(scorerName);
       
       // The player who touched the ball before the scorer receives +1 assist
       if (secondLastBallTouch && secondLastBallTouch.team === teamId && secondLastBallTouch.id !== lastBallTouch.id) {
-        await updatePlayerAssists(secondLastBallTouch.name);
-        room.sendAnnouncement(`👟 Assist by ${secondLastBallTouch.name}!`, undefined, 0xFFFF00, "bold", 0);
+        assistantName = secondLastBallTouch.name;
+        await updatePlayerAssists(assistantName);
       }
     }
+
+    // Announcement
+    room.sendAnnouncement("GOAL! ⚽", undefined, 0xFF0000, "bold", 0);
+    room.sendAnnouncement(`Scorer: ${scorerName}`, undefined, 0xFF0000, "bold", 0);
+    room.sendAnnouncement(`Assist: ${assistantName}`, undefined, 0xFF0000, "bold", 0);
+    room.sendAnnouncement(`Speed: ${speedFormatted} km/h`, undefined, 0xFF0000, "bold", 0);
+
     // Reset touches after goal
     lastBallTouch = null;
     secondLastBallTouch = null;
