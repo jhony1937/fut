@@ -113,10 +113,10 @@ HaxballJS.then(async (HBInit) => {
     }
 
     // Announcement
-    room.sendAnnouncement("GOAL! ⚽", undefined, 0xFF0000, "bold", 0);
-    room.sendAnnouncement(`Scorer: ${scorerName}`, undefined, 0xFF0000, "bold", 0);
-    room.sendAnnouncement(`Assist: ${assistantName}`, undefined, 0xFF0000, "bold", 0);
-    room.sendAnnouncement(`Speed: ${speedFormatted} km/h`, undefined, 0xFF0000, "bold", 0);
+    room.sendAnnouncement("GOAL! ⚽", undefined, 0xFFFF00, "bold", 0);
+    room.sendAnnouncement(`Scorer: ${scorerName}`, undefined, 0xFFFF00, "bold", 0);
+    room.sendAnnouncement(`Assist: ${assistantName}`, undefined, 0xFFFF00, "bold", 0);
+    room.sendAnnouncement(`Speed: ${speedFormatted} km/h`, undefined, 0xFFFF00, "bold", 0);
 
     // Reset touches after goal
     lastBallTouch = null;
