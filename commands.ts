@@ -18,7 +18,43 @@ interface Command {
     response: (player: PlayerObject, args: string[]) => Promise<void>;
 }
 
+/**
+ * Configuration for National Team Kits
+ * Format: [angle, textColor, [color1, color2, color3]]
+ */
+const KITS: { [key: string]: { name: string, colors: [number, number, number[]] } } = {
+    mar: { name: "Morocco", colors: [90, 0xFFFFFF, [0xC1272D, 0x006233]] }, // Red shirt, green accent
+    bra: { name: "Brazil", colors: [90, 0x002776, [0xFEDF00, 0x009739]] },  // Yellow shirt, green accent
+    arg: { name: "Argentina", colors: [90, 0x000000, [0x75AADB, 0xFFFFFF]] }, // Sky blue and white stripes
+    alg: { name: "Algeria", colors: [90, 0x006233, [0xFFFFFF, 0x006233]] },   // White shirt, green accent
+    esp: { name: "Spain", colors: [90, 0xFFFFFF, [0xC1272D, 0xFFD700]] },   // Red and yellow
+    fra: { name: "France", colors: [90, 0xFFFFFF, [0x002395, 0xFFFFFF, 0xED2939]] }, // Blue, white, red
+    por: { name: "Portugal", colors: [90, 0xFFFFFF, [0xC1272D, 0x006233, 0xFFD700]] }, // Red, green, gold
+    ger: { name: "Germany", colors: [90, 0x000000, [0xFFFFFF, 0x000000, 0xFFCE00]] }, // White, black, gold
+    eng: { name: "England", colors: [90, 0x000033, [0xFFFFFF, 0xCF081F]] }, // White and red
+    ita: { name: "Italy", colors: [90, 0xFFFFFF, [0x004D98, 0xFFFFFF]] }    // Azure blue and white
+};
+
 const commands: Command[] = [
+    // --- NATIONAL TEAM KITS ---
+    ...Object.entries(KITS).map(([cmd, kit]) => ({
+        name: cmd,
+        description: `set team kit to ${kit.name}`,
+        emoji: "👕",
+        adminOnly: true,
+        response: async (player: PlayerObject, args: string[]) => {
+            // Apply to the player's team, or both if not in game
+            const team = player.team;
+            if (team === 1 || team === 2) {
+                room.setTeamColors(team, ...kit.colors);
+                room.sendAnnouncement(`👕 ${kit.name} kit applied to your team by ${player.name}!`, undefined, 0x00FF00, "bold", 0);
+            } else {
+                room.setTeamColors(1, ...kit.colors);
+                room.setTeamColors(2, ...kit.colors);
+                room.sendAnnouncement(`👕 ${kit.name} kits applied to both teams by ${player.name}!`, undefined, 0x00FF00, "bold", 0);
+            }
+        }
+    })),
     {
         name: "help",
         description: "show the list of commands and their functions",
