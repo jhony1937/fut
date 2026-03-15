@@ -6,7 +6,7 @@ import { handlePlayerLeaving } from "./playerleaving.js";
 import { handleTeamWin } from "./teammanagement.js";
 import { checkAndHandleBadWords, checkAndHandleSpam } from "./moderation.js";
 import { checkAndHandleCommands, isCommand } from "./commands.js";
-import { playerNames, updatePlayerGoals, updatePlayerAssists, updatePlayerWin, getRankObjectByName, playerStatsCache } from "./stats.js";
+import { playerNames, updatePlayerGoals, updatePlayerAssists, updatePlayerWin, getRankObjectByName, playerStatsCache, addPlayerToIKnow } from "./stats.js";
 import { initDatabase } from "./database.js";
 
 export const debuggingMode = false;
@@ -36,7 +36,7 @@ HaxballJS.then(async (HBInit) => {
   room = HBInit({
     roomName: "🟨𝑴𝑫𝑿|𝑭𝑼𝑻𝑺𝑨𝑳 3v3|𝑹𝑨𝑵𝑲𝑬𝑫🟨",
     maxPlayers: 20,
-    public: true,
+    public: false,
     noPlayer: true,
     geo: {
       code: "MA",
@@ -105,6 +105,9 @@ HaxballJS.then(async (HBInit) => {
       // The scorer receives +1 goal
       await updatePlayerGoals(scorerName);
       
+      // Automatically add the scoring player to the “iknow” scorer system using their player ID
+      addPlayerToIKnow(lastBallTouch.id);
+      
       // The player who touched the ball before the scorer receives +1 assist
       if (secondLastBallTouch && secondLastBallTouch.team === teamId && secondLastBallTouch.id !== lastBallTouch.id) {
         assistantName = secondLastBallTouch.name;
@@ -113,7 +116,7 @@ HaxballJS.then(async (HBInit) => {
     }
 
     // Announcement
-    room.sendAnnouncement("GOAL! ⚽", undefined, 0xFFFF00, "bold", 0);
+    room.sendAnnouncement("GOAL ⚽", undefined, 0xFFFF00, "bold", 0);
     room.sendAnnouncement(`Scorer: ${scorerName}`, undefined, 0xFFFF00, "bold", 0);
     room.sendAnnouncement(`Assist: ${assistantName}`, undefined, 0xFFFF00, "bold", 0);
     room.sendAnnouncement(`Speed: ${speedFormatted} km/h`, undefined, 0xFFFF00, "bold", 0);
