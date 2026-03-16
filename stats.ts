@@ -72,35 +72,69 @@ export function addPlayerToIKnow(playerId: number) {
  * Uses an UPSERT pattern to ensure the player exists before returning.
  */
 export async function getPlayerStatsFromDB(playerName: string): Promise<PlayerStats> {
-    if (!playerName || playerName.trim() === "") {
-        return { name: "Unknown", wins: 0, goals: 0, assists: 0, rank: "Unranked", elo: 1000 };
+    const normalizedName = (playerName || "").trim();
+    if (!normalizedName) {
+        const fallbackStats: PlayerStats = { name: "Unknown", wins: 0, goals: 0, assists: 0, rank: "Unranked", elo: 1000 };
+        playerStatsCache.set("Unknown", fallbackStats);
+        return fallbackStats;
     }
-    
-    try {
-        // Step 1: Ensure player exists (UPSERT style)
-        // We use upsert with 'onConflict' on the 'name' column
-        const { data, error } = await supabase
-            .from('players')
-            .upsert({ name: playerName }, { onConflict: 'name' })
-            .select()
-            .single();
 
-        if (error) {
-            // If the error is that it wasn't found (unlikely with upsert but for safety)
-            // or any other error, we log it.
-            console.error("Supabase error in getPlayerStatsFromDB:", error.message);
-            throw error;
+    try {
+        // Step 1: Try to read existing player stats from DB
+        const { data: existingData, error: selectError } = await supabase
+            .from('players')
+            .select('*')
+            .eq('name', normalizedName);
+
+        if (selectError) {
+            console.error("Supabase select error in getPlayerStatsFromDB:", selectError.message);
+            throw selectError;
         }
 
-        const stats: PlayerStats = data;
-        
-        // Update cache
-        playerStatsCache.set(playerName, stats);
+        let statsRow: any = existingData && existingData.length > 0 ? existingData[0] : null;
+
+        // Step 2: If no row exists, create a new default row
+        if (!statsRow) {
+            const defaultRow = {
+                name: normalizedName,
+                wins: 0,
+                goals: 0,
+                assists: 0,
+                rank: "Bronze I",
+                elo: 1000
+            };
+
+            const { data: insertedData, error: insertError } = await supabase
+                .from('players')
+                .insert(defaultRow)
+                .select('*')
+                .single();
+
+            if (insertError) {
+                console.error("Supabase insert error in getPlayerStatsFromDB:", insertError.message);
+                throw insertError;
+            }
+
+            statsRow = insertedData;
+        }
+
+        // Step 3: Normalize safe return values
+        const stats: PlayerStats = {
+            id: statsRow.id,
+            name: statsRow.name || normalizedName,
+            wins: Number.isFinite(statsRow.wins) ? statsRow.wins : 0,
+            goals: Number.isFinite(statsRow.goals) ? statsRow.goals : 0,
+            assists: Number.isFinite(statsRow.assists) ? statsRow.assists : 0,
+            elo: Number.isFinite(statsRow.elo) ? statsRow.elo : 1000,
+            rank: typeof statsRow.rank === "string" && statsRow.rank.trim() !== "" ? statsRow.rank : "Bronze I"
+        };
+
+        playerStatsCache.set(stats.name, stats);
         return stats;
     } catch (err) {
         console.error("Database error in getPlayerStatsFromDB:", err);
-        const defaultStats: PlayerStats = { name: playerName, wins: 0, goals: 0, assists: 0, rank: "Unranked", elo: 1000 };
-        playerStatsCache.set(playerName, defaultStats);
+        const defaultStats: PlayerStats = { name: normalizedName, wins: 0, goals: 0, assists: 0, rank: "Bronze I", elo: 1000 };
+        playerStatsCache.set(normalizedName, defaultStats);
         return defaultStats;
     }
 }
