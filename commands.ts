@@ -8,6 +8,7 @@ import {
     setPlayerAssistsInDB,
     RANKS 
 } from "./stats.js";
+import { startAutoPick } from "./autopick.js";
 
 interface Command {
     name: string;
@@ -18,6 +19,15 @@ interface Command {
 }
 
 const commands: Command[] = [
+    {
+        name: "pick",
+        description: "start the 3v3 auto-pick system",
+        emoji: "🎮",
+        adminOnly: true,
+        response: async (_player: PlayerObject, _args: string[]) => {
+            startAutoPick();
+        }
+    },
     {
         name: "help",
         description: "show the list of commands and their functions",
