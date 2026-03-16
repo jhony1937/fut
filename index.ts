@@ -8,6 +8,7 @@ import { checkAndHandleBadWords, checkAndHandleSpam } from "./moderation.js";
 import { checkAndHandleCommands, isCommand } from "./commands.js";
 import { playerNames, updatePlayerGoals, updatePlayerAssists, updatePlayerWin, getRankObjectByName, playerStatsCache, addPlayerToIKnow } from "./stats.js";
 import { initDatabase } from "./database.js";
+import { isPicking, handleCaptainPick, handlePlayerLeavePick } from "./autopick.js";
 
 export const debuggingMode = false;
 const scoreLimit: number = 3;
@@ -34,7 +35,7 @@ export let room: RoomObject;
 HaxballJS.then(async (HBInit) => {
   await initDatabase();
   room = HBInit({
-    roomName: "🟨𝑴𝑫𝑿|𝑭𝑼𝑻𝑺𝑨𝑳 3v3|𝑹𝑨𝑵𝑲𝑬𝑫🟨",
+    roomName: "⚖️ FUTSAL Testing ⚖️",
     maxPlayers: 20,
     public: false,
     noPlayer: true,
@@ -64,6 +65,7 @@ HaxballJS.then(async (HBInit) => {
 
   room.onPlayerLeave = function (player: PlayerObject): void {
     handlePlayerLeaving(player);
+    handlePlayerLeavePick(player);
   }
 
   function checkBallTouch(): void {
@@ -216,6 +218,12 @@ HaxballJS.then(async (HBInit) => {
     // Check bad words/spam (assuming synchronous)
     if (checkAndHandleBadWords(player, message) || checkAndHandleSpam(player, message)) {
       return false;
+    }
+
+    // Auto-pick system: if pick is in progress
+    if (isPicking) {
+      const pickHandled = handleCaptainPick(player, message);
+      if (pickHandled) return false; // Suppress pick from chat
     }
 
     // Custom chat display with rank using synchronous cache
