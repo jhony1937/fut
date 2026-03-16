@@ -18,6 +18,22 @@ interface Command {
     response: (player: PlayerObject, args: string[]) => Promise<void>;
 }
 
+async function sendLeaderboardByStat(player: PlayerObject, stat: 'wins' | 'goals' | 'assists' | 'elo', title: string, label: string) {
+    const top = await getTopPlayersByStat(stat as any, 10);
+    room.sendAnnouncement(title, player.id, 0xFFFF00, "bold", 0);
+    if (!top || top.length === 0) {
+        room.sendAnnouncement("No players found yet.", player.id, 0xFFFFFF, "normal", 0);
+        return;
+    }
+
+    top.forEach((entry, index) => {
+        const color = index < 3 ? 0xFFD700 : 0xFFFFFF;
+        const style = index < 3 ? "bold" : "normal";
+        const value = stat === 'elo' ? `${entry.elo} Elo` : `${(entry as any)[stat]} ${label}`;
+        room.sendAnnouncement(`${index + 1}. ${entry.name} - ${value}`, player.id, color, style, 0);
+    });
+}
+
 const commands: Command[] = [
     {
         name: "pick",
@@ -73,17 +89,16 @@ const commands: Command[] = [
         emoji: "📈",
         adminOnly: false,
         response: async (player: PlayerObject) => {
-            const top = await getTopPlayersByStat("wins", 10);
-            room.sendAnnouncement("🏆 --- TOP WINS --- 🏆", player.id, 0xFFFF00, "bold", 0);
-            if (top.length === 0) {
-                room.sendAnnouncement("No data yet.", player.id, 0xFFFFFF, "normal", 0);
-            } else {
-                top.forEach((entry, index) => {
-                    const color = index < 3 ? 0xFFD700 : 0xFFFFFF;
-                    const style = index < 3 ? "bold" : "normal";
-                    room.sendAnnouncement(`${entry.name} - ${entry.wins} wins`, player.id, color, style, 0);
-                });
-            }
+            await sendLeaderboardByStat(player, "wins", "🏆 --- TOP WINS --- 🏆", "wins");
+        }
+    },
+    {
+        name: "topwins",
+        description: "alias for !wins",
+        emoji: "📈",
+        adminOnly: false,
+        response: async (player: PlayerObject) => {
+            await sendLeaderboardByStat(player, "wins", "🏆 --- TOP WINS --- 🏆", "wins");
         }
     },
     {
@@ -92,17 +107,16 @@ const commands: Command[] = [
         emoji: "⚽",
         adminOnly: false,
         response: async (player: PlayerObject) => {
-            const top = await getTopPlayersByStat("goals", 10);
-            room.sendAnnouncement("🏆 --- TOP GOALS --- 🏆", player.id, 0xFFFF00, "bold", 0);
-            if (top.length === 0) {
-                room.sendAnnouncement("No data yet.", player.id, 0xFFFFFF, "normal", 0);
-            } else {
-                top.forEach((entry, index) => {
-                    const color = index < 3 ? 0xFFD700 : 0xFFFFFF;
-                    const style = index < 3 ? "bold" : "normal";
-                    room.sendAnnouncement(`${entry.name} - ${entry.goals} goals`, player.id, color, style, 0);
-                });
-            }
+            await sendLeaderboardByStat(player, "goals", "🏆 --- TOP GOALS --- 🏆", "goals");
+        }
+    },
+    {
+        name: "topgoals",
+        description: "alias for !goals",
+        emoji: "⚽",
+        adminOnly: false,
+        response: async (player: PlayerObject) => {
+            await sendLeaderboardByStat(player, "goals", "🏆 --- TOP GOALS --- 🏆", "goals");
         }
     },
     {
@@ -111,17 +125,16 @@ const commands: Command[] = [
         emoji: "🎯",
         adminOnly: false,
         response: async (player: PlayerObject) => {
-            const top = await getTopPlayersByStat("assists", 10);
-            room.sendAnnouncement("� --- TOP ASSISTS --- �", player.id, 0xFFFF00, "bold", 0);
-            if (top.length === 0) {
-                room.sendAnnouncement("No data yet.", player.id, 0xFFFFFF, "normal", 0);
-            } else {
-                top.forEach((entry, index) => {
-                    const color = index < 3 ? 0xFFD700 : 0xFFFFFF;
-                    const style = index < 3 ? "bold" : "normal";
-                    room.sendAnnouncement(`${entry.name} - ${entry.assists} assists`, player.id, color, style, 0);
-                });
-            }
+            await sendLeaderboardByStat(player, "assists", "🏆 --- TOP ASSISTS --- 🏆", "assists");
+        }
+    },
+    {
+        name: "topassists",
+        description: "alias for !assists",
+        emoji: "🎯",
+        adminOnly: false,
+        response: async (player: PlayerObject) => {
+            await sendLeaderboardByStat(player, "assists", "🏆 --- TOP ASSISTS --- 🏆", "assists");
         }
     },
     {
@@ -130,17 +143,16 @@ const commands: Command[] = [
         emoji: "🏆",
         adminOnly: false,
         response: async (player: PlayerObject) => {
-            const top = await getTopPlayersByStat("elo", 10);
-            room.sendAnnouncement("🏆 --- TOP 10 ELO LEADERBOARD --- 🏆", player.id, 0xFFFF00, "bold", 0);
-            if (top.length === 0) {
-                room.sendAnnouncement("No data yet.", player.id, 0xFFFFFF, "normal", 0);
-            } else {
-                top.forEach((entry, index) => {
-                    const color = index < 3 ? 0xFFD700 : 0xFFFFFF;
-                    const style = index < 3 ? "bold" : "normal";
-                    room.sendAnnouncement(`${index + 1}. ${entry.name} - ${entry.elo} Elo`, player.id, color, style, 0);
-                });
-            }
+            await sendLeaderboardByStat(player, "elo", "🏆 --- TOP 10 ELO LEADERBOARD --- 🏆", "Elo");
+        }
+    },
+    {
+        name: "topelo",
+        description: "alias for !top",
+        emoji: "🏆",
+        adminOnly: false,
+        response: async (player: PlayerObject) => {
+            await sendLeaderboardByStat(player, "elo", "🏆 --- TOP 10 ELO LEADERBOARD --- 🏆", "Elo");
         }
     },
     {
