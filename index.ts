@@ -78,7 +78,7 @@ HaxballJS.then(async (HBInit) => {
     removeFromQueue(player.id);
   }
 
-  room.onPlayerTeamChange = function (changedPlayer: PlayerObject, byPlayer: PlayerObject): void {
+  room.onPlayerTeamChange = function (changedPlayer: PlayerObject, _byPlayer: PlayerObject): void {
      if (changedPlayer.team === 0) {
          addToQueue(changedPlayer.id);
          if (!specPlayerIdList.includes(changedPlayer.id)) specPlayerIdList.push(changedPlayer.id);
