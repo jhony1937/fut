@@ -10,6 +10,7 @@ export interface PlayerStats {
     goals: number;
     assists: number;
     rank: string;
+    elo: number;
 }
 
 /**
@@ -83,7 +84,8 @@ export async function getPlayerStatsFromDB(playerName: string): Promise<PlayerSt
             wins: 0,
             goals: 0,
             assists: 0,
-            rank: "Unranked"
+            rank: "Unranked",
+            elo: 0
         };
 
         const { data: insertedData, error: insertError } = await supabase
@@ -101,7 +103,7 @@ export async function getPlayerStatsFromDB(playerName: string): Promise<PlayerSt
         return insertedData as PlayerStats;
     } catch (err) {
         console.error("Unexpected error in getPlayerStatsFromDB:", err);
-        return { name: normalizedName, wins: 0, goals: 0, assists: 0, rank: "Unranked" };
+        return { name: normalizedName, wins: 0, goals: 0, assists: 0, rank: "Unranked", elo: 0 };
     }
 }
 
@@ -161,7 +163,8 @@ export async function incrementWin(playerName: string): Promise<{ rankedUp: bool
  */
 export function getRankObjectByName(rankName: string) {
     const rank = RANKS.find(r => r.name.toLowerCase() === rankName.toLowerCase());
-    return rank || RANKS[RANKS.length - 1]!; // Default to Unranked (last in array)
+    if (rank) return rank;
+    return RANKS[RANKS.length - 1] as { name: string, wins: number, color: number };
 }
 
 const iknowScorers = new Set<number>();
@@ -171,6 +174,43 @@ const iknowScorers = new Set<number>();
 export function addPlayerToIKnow(playerId: number) {
     iknowScorers.add(playerId);
     console.log(`[iknow] Player ID ${playerId} added to the system.`);
+}
+
+const iknowScorers = new Set<number>();
+/**
+ * Adds a player to the "iknow" scorer system using their player ID as the user
+ */
+export function addPlayerToIKnow(playerId: number) {
+    iknowScorers.add(playerId);
+    console.log(`[iknow] Player ID ${playerId} added to the system.`);
+}
+
+/**
+ * Updates a player's wins manually in the database.
+ */
+export async function setPlayerWinsInDB(playerName: string, wins: number) {
+    await updatePlayerStats(playerName, { wins });
+}
+
+/**
+ * Updates a player's goals manually in the database.
+ */
+export async function setPlayerGoalsInDB(playerName: string, goals: number) {
+    await updatePlayerStats(playerName, { goals });
+}
+
+/**
+ * Updates a player's assists manually in the database.
+ */
+export async function setPlayerAssistsInDB(playerName: string, assists: number) {
+    await updatePlayerStats(playerName, { assists });
+}
+
+/**
+ * Updates a player's rank manually in the database.
+ */
+export async function setPlayerRankInDB(playerName: string, rank: string) {
+    await updatePlayerStats(playerName, { rank });
 }
 
 /**
