@@ -210,18 +210,6 @@ const commands: Command[] = [
     }
  ];
 
-            const shuffled = availableSpecs.sort(() => 0.5 - Math.random());
-            const selected = shuffled.slice(0, count);
-
-            selected.forEach(target => {
-                const targetTeam = redPlayerIdList.length <= bluePlayerIdList.length ? redPlayerIdList : bluePlayerIdList;
-                movePlayerToTeam(target.id, targetTeam);
-                room.sendAnnouncement(`🎲 Random: ${target.name} moved to ${targetTeam === redPlayerIdList ? "Red" : "Blue"}.`, undefined, 0x00FF00, "bold");
-            });
-        }
-    }
- ];
-
 export function isCommand(message: string): boolean {
     return message.startsWith("!");
 }
