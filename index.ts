@@ -8,7 +8,7 @@ import { checkAndHandleBadWords, checkAndHandleSpam } from "./moderation.js";
 import { checkAndHandleCommands, isCommand } from "./commands.js";
 import { playerNames, incrementGoals, incrementAssists, incrementWin, getRankObjectByName, playerStatsCache, addPlayerToIKnow } from "./stats.js";
 import { initDatabase } from "./database.js";
-import { isPicking, handleCaptainPick, handlePlayerLeavePick } from "./autopick.js";
+import { isPicking, handleCaptainPick, handlePlayerLeavePick, setPickingState } from "./autopick.js";
 
 import { addToQueue, removeFromQueue } from "./spectatorQueue.js";
 
@@ -43,9 +43,9 @@ HaxballJS.then(async (HBInit) => {
     }
   });
   room = HBInit({
-    roomName: "Testing",
+    roomName: "Futsal|3v3|Testing|beta",
     maxPlayers: 20,
-    public: false,
+    public: true,
     noPlayer: true,
     geo: {
       code: "MA",
@@ -198,6 +198,7 @@ HaxballJS.then(async (HBInit) => {
   room.onGameStart = function (): void {
     lastBallTouch = null;
     secondLastBallTouch = null;
+    setPickingState(false);
   }
 
   room.onPositionsReset = function (): void {
