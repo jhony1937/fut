@@ -177,57 +177,6 @@ const commands: Command[] = [
              room.sendAnnouncement(`✅ Rank for ${targetName} set to ${rank}.`, player.id, 0x00FF00, "bold");
          }
      },
-     {
-        name: "pick",
-        description: "display all current spectators in chat with queue numbers",
-        emoji: "📋",
-        adminOnly: false,
-        response: async (player: PlayerObject) => {
-            const specs = getQueueList();
-            if (specs.length === 0) {
-                room.sendAnnouncement("📢 No spectators waiting.", player.id, 0xFFFF00, "bold");
-                return;
-            }
-            room.sendAnnouncement("📋 --- SPECTATORS LIST --- 📋", player.id, 0x00FFFF, "bold");
-            specs.forEach((spec, index) => {
-                const prefix = index === 0 ? "⭐️ [Reserved] " : `${index + 1}. `;
-                room.sendAnnouncement(`${prefix}${spec.name}`, player.id, 0xFFFFFF, "normal");
-            });
-        }
-    },
-    {
-        name: "choose",
-        description: "select players from spectators using their number (!choose 1 2)",
-        emoji: "👆",
-        adminOnly: true,
-        response: async (player: PlayerObject, args: string[]) => {
-            if (args.length === 0) {
-                room.sendAnnouncement("⚠️ Usage: !choose [number] [number]...", player.id, 0xFF0000, "bold");
-                return;
-            }
-            
-            const selectedPlayers: PlayerObject[] = [];
-            for (const arg of args) {
-                const index = parseInt(arg);
-                if (isNaN(index)) continue;
-                
-                const target = getSpectatorByIndex(index);
-                if (target) {
-                    selectedPlayers.push(target);
-                } else {
-                    room.sendAnnouncement(`⚠️ No spectator found at number ${index}.`, player.id, 0xFF0000, "normal");
-                }
-            }
-
-            if (selectedPlayers.length === 0) return;
-
-            selectedPlayers.forEach(target => {
-                const targetTeam = redPlayerIdList.length <= bluePlayerIdList.length ? redPlayerIdList : bluePlayerIdList;
-                movePlayerToTeam(target.id, targetTeam);
-                room.sendAnnouncement(`✅ ${target.name} was chosen and moved to ${targetTeam === redPlayerIdList ? "Red" : "Blue"}.`, undefined, 0x00FF00, "bold");
-            });
-        }
-    },
     {
         name: "random",
         description: "randomly select players from remaining spectators",
@@ -248,6 +197,18 @@ const commands: Command[] = [
                 room.sendAnnouncement("⚠️ Invalid count for random selection.", player.id, 0xFF0000, "bold");
                 return;
             }
+
+            const shuffled = availableSpecs.sort(() => 0.5 - Math.random());
+            const selected = shuffled.slice(0, count);
+
+            selected.forEach(target => {
+                const targetTeam = redPlayerIdList.length <= bluePlayerIdList.length ? redPlayerIdList : bluePlayerIdList;
+                movePlayerToTeam(target.id, targetTeam);
+                room.sendAnnouncement(`🎲 Random: ${target.name} moved to ${targetTeam === redPlayerIdList ? "Red" : "Blue"}.`, undefined, 0x00FF00, "bold");
+            });
+        }
+    }
+ ];
 
             const shuffled = availableSpecs.sort(() => 0.5 - Math.random());
             const selected = shuffled.slice(0, count);
