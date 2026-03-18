@@ -30,9 +30,9 @@ export function removeFromQueue(playerId: number): void {
  * Returns the current ordered list of spectators (PlayerObject[])
  */
 export function getQueueList(): PlayerObject[] {
-    return spectatorQueue
+    return (spectatorQueue
         .map(id => room.getPlayer(id))
-        .filter((p): p is PlayerObject => p !== null && p.team === 0);
+        .filter((p) => p !== null && p !== undefined && p.team === 0)) as PlayerObject[];
 }
 
 /**
@@ -40,7 +40,7 @@ export function getQueueList(): PlayerObject[] {
  */
 export function getNextSpectator(): PlayerObject | null {
     const list = getQueueList();
-    return list.length > 0 ? list[0] : null;
+    return list.length > 0 ? (list[0] as PlayerObject) : null;
 }
 
 /**
@@ -49,7 +49,7 @@ export function getNextSpectator(): PlayerObject | null {
 export function getSpectatorByIndex(index: number): PlayerObject | null {
     const list = getQueueList();
     if (index > 0 && index <= list.length) {
-        return list[index - 1];
+        return list[index - 1] as PlayerObject;
     }
     return null;
 }
