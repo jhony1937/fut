@@ -5,13 +5,14 @@ const SUPABASE_KEY = process.env['SUPABASE_KEY'] || 'sb_secret_vm7PuS7CZl9TbdWcb
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-export async function initDatabase() {
+export async function initDatabase(onPlayerUpdate?: (payload: any) => void) {
     console.log("Supabase initialized");
     
     // Realtime Channel for sync
     supabase.channel('players-sync')
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'players' }, (payload) => {
             console.log('Player updated in dashboard:', payload.new);
+            if (onPlayerUpdate) onPlayerUpdate(payload.new);
         })
         .subscribe();
 }
