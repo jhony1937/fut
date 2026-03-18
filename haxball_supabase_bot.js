@@ -1,8 +1,9 @@
+// @ts-nocheck
 // Haxball Headless Bot with Supabase Integration
 // Requirements: players table (id, name unique, goals, assists, wins, rank)
 
-const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-const SUPABASE_KEY = 'sb_publishablhttps://dlxanovfndvwhrlbwvmh.supabase.coe_ozJN5qAd3VrFYrlabjXBaw_PsHQ7CR8';
+const SUPABASE_URL = 'https://dlxanovfndvwhrlbwvmh.supabase.co';
+const SUPABASE_KEY = 'sb_secret_vm7PuS7CZl9TbdWcbS1dqQ_B_YpkDEN';
 const ROOM_TOKEN = 'thr1.AAAAAGm6JKBEMxeKI9td2w.6gO-UedTXDk';
 
 // This script is designed to be run in a browser environment (headless host)
@@ -15,6 +16,15 @@ const ROOM_TOKEN = 'thr1.AAAAAGm6JKBEMxeKI9td2w.6gO-UedTXDk';
 
 const { createClient } = window.supabase; // Standard way if script is loaded via CDN in browser
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// --- REALTIME CHANNEL ---
+// This allows the bot to sync changes made directly in the Supabase dashboard
+supabase.channel('players-sync')
+  .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'players' }, (payload) => {
+    console.log('Syncing player from dashboard:', payload.new);
+    // If you have a local cache, update it here
+  })
+  .subscribe();
 
 const RANKS = [
   { name: 'Champion', wins: 120 },
@@ -159,7 +169,7 @@ room.onTeamVictory = async (scores) => {
       if (dbPlayer) {
         const newWins = dbPlayer.wins + 1;
         const newRank = getRankByWins(newWins);
-        const updates = { wins: newWins };
+        const updates = { wins: newWins, rank: dbPlayer.rank };
         
         if (newRank !== dbPlayer.rank) {
           updates.rank = newRank;
