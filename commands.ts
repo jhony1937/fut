@@ -29,32 +29,56 @@ const commands: Command[] = [
     },
     {
         name: "wins",
-        description: "show your wins + rank",
+        description: "show TOP 8 players with the most wins",
         emoji: "🏆",
         adminOnly: false,
         response: async (player: PlayerObject) => {
-            const stats = await getPlayerStatsFromDB(player.name);
-            room.sendAnnouncement(`🏆 Wins for ${player.name}: ${stats.wins} | Rank: ${stats.rank}`, player.id, 0x00FF00, "bold");
+            const top = await getTopPlayersByStat("wins", 8);
+            room.sendAnnouncement("🏆 --- TOP 8 WINS --- 🏆", player.id, 0xFFFF00, "bold");
+            if (!top || top.length === 0) {
+                room.sendAnnouncement("No players found yet.", player.id, 0xFFFFFF, "normal");
+                return;
+            }
+            top.forEach((entry, index) => {
+                const color = index < 3 ? 0xFFD700 : 0xFFFFFF;
+                room.sendAnnouncement(`${index + 1}. ${entry.name} - ${entry.wins}`, player.id, color, index < 3 ? "bold" : "normal");
+            });
         }
     },
     {
         name: "goals",
-        description: "show your goals",
+        description: "show TOP 8 players with the most goals",
         emoji: "⚽",
         adminOnly: false,
         response: async (player: PlayerObject) => {
-            const stats = await getPlayerStatsFromDB(player.name);
-            room.sendAnnouncement(`⚽ Goals for ${player.name}: ${stats.goals}`, player.id, 0xFFFF00, "bold");
+            const top = await getTopPlayersByStat("goals", 8);
+            room.sendAnnouncement("⚽ --- TOP 8 GOALS --- ⚽", player.id, 0xFFFF00, "bold");
+            if (!top || top.length === 0) {
+                room.sendAnnouncement("No players found yet.", player.id, 0xFFFFFF, "normal");
+                return;
+            }
+            top.forEach((entry, index) => {
+                const color = index < 3 ? 0xFFD700 : 0xFFFFFF;
+                room.sendAnnouncement(`${index + 1}. ${entry.name} - ${entry.goals}`, player.id, color, index < 3 ? "bold" : "normal");
+            });
         }
     },
     {
-        name: "assists",
-        description: "show your assists",
+        name: "assist",
+        description: "show TOP 8 players with the most assists",
         emoji: "👟",
         adminOnly: false,
         response: async (player: PlayerObject) => {
-            const stats = await getPlayerStatsFromDB(player.name);
-            room.sendAnnouncement(`👟 Assists for ${player.name}: ${stats.assists}`, player.id, 0xFFA500, "bold");
+            const top = await getTopPlayersByStat("assists", 8);
+            room.sendAnnouncement("👟 --- TOP 8 ASSISTS --- 👟", player.id, 0xFFFF00, "bold");
+            if (!top || top.length === 0) {
+                room.sendAnnouncement("No players found yet.", player.id, 0xFFFFFF, "normal");
+                return;
+            }
+            top.forEach((entry, index) => {
+                const color = index < 3 ? 0xFFD700 : 0xFFFFFF;
+                room.sendAnnouncement(`${index + 1}. ${entry.name} - ${entry.assists}`, player.id, color, index < 3 ? "bold" : "normal");
+            });
         }
     },
     {
@@ -63,7 +87,7 @@ const commands: Command[] = [
         emoji: "❓",
         adminOnly: false,
         response: async (player: PlayerObject) => {
-            room.sendAnnouncement("📜 --- COMMANDS --- 📜", player.id, 0xFFFF00, "bold");
+            room.sendAnnouncement("� --- COMMANDS --- �", player.id, 0xFFFF00, "bold");
             commands.forEach((command) => {
                 if (command.adminOnly && !player.admin) return;
                 room.sendAnnouncement(`${command.emoji} !${command.name}: ${command.description}`, player.id, 0xFFFFFF, "normal");
@@ -71,42 +95,6 @@ const commands: Command[] = [
         }
     },
     {
-        name: "topwins",
-        description: "show TOP 10 players with the most wins",
-        emoji: "📈",
-        adminOnly: false,
-        response: async (player: PlayerObject) => {
-            const top = await getTopPlayersByStat("wins", 10);
-            room.sendAnnouncement("🏆 --- TOP WINS --- 🏆", player.id, 0xFFFF00, "bold");
-            if (!top || top.length === 0) {
-                room.sendAnnouncement("No players found yet.", player.id, 0xFFFFFF, "normal");
-                return;
-            }
-            top.forEach((entry, index) => {
-                const color = index < 3 ? 0xFFD700 : 0xFFFFFF;
-                room.sendAnnouncement(`${index + 1}. ${entry.name} - ${entry.wins} wins`, player.id, color, index < 3 ? "bold" : "normal");
-            });
-        }
-    },
-    {
-        name: "topgoals",
-        description: "show TOP 10 players with the most goals",
-        emoji: "⚽",
-        adminOnly: false,
-        response: async (player: PlayerObject) => {
-            const top = await getTopPlayersByStat("goals", 10);
-            room.sendAnnouncement("⚽ --- TOP GOALS --- ⚽", player.id, 0xFFFF00, "bold");
-            if (!top || top.length === 0) {
-                room.sendAnnouncement("No players found yet.", player.id, 0xFFFFFF, "normal");
-                return;
-            }
-            top.forEach((entry, index) => {
-                const color = index < 3 ? 0xFFD700 : 0xFFFFFF;
-                room.sendAnnouncement(`${index + 1}. ${entry.name} - ${entry.goals} goals`, player.id, color, index < 3 ? "bold" : "normal");
-            });
-        }
-    },
-     {
          name: "setwins",
          description: "set wins for a player (!setwins @player amount)",
          emoji: "🛠️",
