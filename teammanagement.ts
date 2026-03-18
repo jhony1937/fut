@@ -1,5 +1,5 @@
 import { removePlayerFromAfkMapsAndSets, setLastPlayerActivityTimestamp } from "./afkdetection.js";
-import { bluePlayerIdList, redPlayerIdList, room, specPlayerIdList } from "./index.js";
+import { bluePlayerIdList, redPlayerIdList, room } from "./index.js";
 import { getNextSpectator } from "./spectatorQueue.js";
 
 export function movePlayerToTeam(playerId: number, teamPlayerIdList: number[]) {
