@@ -176,15 +176,6 @@ export function addPlayerToIKnow(playerId: number) {
     console.log(`[iknow] Player ID ${playerId} added to the system.`);
 }
 
-const iknowScorers = new Set<number>();
-/**
- * Adds a player to the "iknow" scorer system using their player ID as the user
- */
-export function addPlayerToIKnow(playerId: number) {
-    iknowScorers.add(playerId);
-    console.log(`[iknow] Player ID ${playerId} added to the system.`);
-}
-
 /**
  * Updates a player's wins manually in the database.
  */
