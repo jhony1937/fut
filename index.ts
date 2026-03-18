@@ -234,15 +234,10 @@ HaxballJS.then(async (HBInit) => {
     const rankName = stats ? stats.rank : "Unranked";
     const rankObj = getRankObjectByName(rankName);
     
-    // VIP Glowing Effect: bold for all, distinctive color for VIP
+    // Default bold for all
     const fontWeight = "bold";
     
-    if (rankName === "VIP") {
-      // Glow effect for VIP: Send a special announcement with a flashy prefix
-      room.sendAnnouncement(`✨ [${rankObj.name}] ${player.name}: ${message} ✨`, undefined, rankObj.color, fontWeight, 0);
-    } else {
-      room.sendAnnouncement(`[${rankObj.name}] ${player.name}: ${message}`, undefined, rankObj.color, fontWeight, 0);
-    }
+    room.sendAnnouncement(`[${rankObj.name}] ${player.name}: ${message}`, undefined, rankObj.color, fontWeight, 0);
     
     return false; // Suppress default chat
   }
