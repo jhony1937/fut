@@ -10,7 +10,6 @@ export interface PlayerStats {
     goals: number;
     assists: number;
     rank: string;
-    elo: number;
 }
 
 /**
@@ -84,8 +83,7 @@ export async function getPlayerStatsFromDB(playerName: string): Promise<PlayerSt
             wins: 0,
             goals: 0,
             assists: 0,
-            rank: "Unranked",
-            elo: 0
+            rank: "Unranked"
         };
 
         const { data: insertedData, error: insertError } = await supabase
@@ -103,7 +101,7 @@ export async function getPlayerStatsFromDB(playerName: string): Promise<PlayerSt
         return insertedData as PlayerStats;
     } catch (err) {
         console.error("Unexpected error in getPlayerStatsFromDB:", err);
-        return { name: normalizedName, wins: 0, goals: 0, assists: 0, rank: "Unranked", elo: 0 };
+        return { name: normalizedName, wins: 0, goals: 0, assists: 0, rank: "Unranked" };
     }
 }
 
