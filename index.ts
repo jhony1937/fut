@@ -10,6 +10,8 @@ import { playerNames, incrementGoals, incrementAssists, incrementWin, getRankObj
 import { initDatabase } from "./database.js";
 import { isPicking, handleCaptainPick, handlePlayerLeavePick } from "./autopick.js";
 
+import { addToQueue, removeFromQueue } from "./spectatorQueue.js";
+
 export const debuggingMode = false;
 const scoreLimit: number = 3;
 const timeLimit: number = 3;
@@ -33,7 +35,13 @@ let secondLastBallTouch: PlayerObject | null = null;
 export let room: RoomObject;
 
 HaxballJS.then(async (HBInit) => {
-  await initDatabase();
+  await initDatabase((updatedPlayer) => {
+    // Sync local cache with dashboard edits
+    if (updatedPlayer && updatedPlayer.name) {
+      playerStatsCache.set(updatedPlayer.name, updatedPlayer);
+      console.log(`[Sync] Dashboard update for ${updatedPlayer.name} applied to bot cache.`);
+    }
+  });
   room = HBInit({
     roomName: "Testing",
     maxPlayers: 20,
@@ -61,12 +69,39 @@ HaxballJS.then(async (HBInit) => {
     playerNames.set(player.auth, player.name);
     // Initialize stats from database if not exists
     handlePlayerJoining(player);
+    addToQueue(player.id);
   }
 
   room.onPlayerLeave = function (player: PlayerObject): void {
     handlePlayerLeaving(player);
     handlePlayerLeavePick(player);
+    removeFromQueue(player.id);
   }
+
+  room.onPlayerTeamChange = function (changedPlayer: PlayerObject, byPlayer: PlayerObject): void {
+     if (changedPlayer.team === 0) {
+         addToQueue(changedPlayer.id);
+         if (!specPlayerIdList.includes(changedPlayer.id)) specPlayerIdList.push(changedPlayer.id);
+         const redIndex = redPlayerIdList.indexOf(changedPlayer.id);
+         if (redIndex !== -1) redPlayerIdList.splice(redIndex, 1);
+         const blueIndex = bluePlayerIdList.indexOf(changedPlayer.id);
+         if (blueIndex !== -1) bluePlayerIdList.splice(blueIndex, 1);
+     } else if (changedPlayer.team === 1) {
+         removeFromQueue(changedPlayer.id);
+         if (!redPlayerIdList.includes(changedPlayer.id)) redPlayerIdList.push(changedPlayer.id);
+         const specIndex = specPlayerIdList.indexOf(changedPlayer.id);
+         if (specIndex !== -1) specPlayerIdList.splice(specIndex, 1);
+         const blueIndex = bluePlayerIdList.indexOf(changedPlayer.id);
+         if (blueIndex !== -1) bluePlayerIdList.splice(blueIndex, 1);
+     } else if (changedPlayer.team === 2) {
+         removeFromQueue(changedPlayer.id);
+         if (!bluePlayerIdList.includes(changedPlayer.id)) bluePlayerIdList.push(changedPlayer.id);
+         const specIndex = specPlayerIdList.indexOf(changedPlayer.id);
+         if (specIndex !== -1) specPlayerIdList.splice(specIndex, 1);
+         const redIndex = redPlayerIdList.indexOf(changedPlayer.id);
+         if (redIndex !== -1) redPlayerIdList.splice(redIndex, 1);
+     }
+   }
 
   function checkBallTouch(): void {
     const ballPos = room.getBallPosition();
