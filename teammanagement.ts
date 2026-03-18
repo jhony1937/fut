@@ -1,6 +1,7 @@
 import { removePlayerFromAfkMapsAndSets, setLastPlayerActivityTimestamp } from "./afkdetection.js";
 import { bluePlayerIdList, redPlayerIdList, room } from "./index.js";
 import { getNextSpectator } from "./spectatorQueue.js";
+import { displaySpectators, setPickingState } from "./autopick.js";
 
 export function movePlayerToTeam(playerId: number, teamPlayerIdList: number[]) {
     const teamId: number = teamPlayerIdList === redPlayerIdList ? 1 : 2;
@@ -46,4 +47,8 @@ export function handleTeamWin(winningTeamIdList: number[]) {
     } else {
         room.sendAnnouncement("📢 No spectators waiting for auto-pick.", undefined, 0xFFFF00, "bold", 0);
     }
+
+    // Enable picking phase and display list
+    setPickingState(true);
+    displaySpectators();
 }
