@@ -1,6 +1,6 @@
 import { room, redPlayerIdList, bluePlayerIdList } from "./index.js";
 import { getQueueList, getSpectatorByIndex } from "./spectatorQueue.js";
-import { movePlayerToTeam } from "./teammanagement.js";
+import { movePlayerToTeam, checkAutoStart } from "./teammanagement.js";
 
 export let isPicking = false;
 
@@ -55,6 +55,9 @@ export function handleCaptainPick(player: PlayerObject, message: string): boolea
 
     // Update and re-display the list
     displaySpectators();
+    
+    // Check if teams are now balanced and can start
+    checkAutoStart();
     
     return true; // Suppress valid selection from chat
 }
