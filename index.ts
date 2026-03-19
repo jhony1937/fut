@@ -12,6 +12,7 @@ import { isPicking, handleCaptainPick, handlePlayerLeavePick, setPickingState } 
 
 import { addToQueue, removeFromQueue } from "./spectatorQueue.js";
 
+export const debuggingMode = false;
 const scoreLimit: number = 3;
 const timeLimit: number = 3;
 
