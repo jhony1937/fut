@@ -1,4 +1,4 @@
-import { removePlayerFromAfkMapsAndSets, setLastPlayerActivityTimestamp } from "./afkdetection.js";
+import { removePlayerFromAfkMapsAndSets } from "./afkdetection.js";
 import { bluePlayerIdList, redPlayerIdList, room } from "./index.js";
 import { getNextSpectator, getFullQueueList } from "./spectatorQueue.js";
 import { displaySpectators, setPickingState } from "./autopick.js";
