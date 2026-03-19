@@ -8,7 +8,7 @@ import {
     setPlayerRankInDB
 } from "./stats.js";
 import { getQueueList } from "./spectatorQueue.js";
-import { movePlayerToTeam } from "./teammanagement.js";
+import { movePlayerToTeam, checkAutoStart } from "./teammanagement.js";
 import { redPlayerIdList, bluePlayerIdList } from "./index.js";
 import { setPlayerAfk, removePlayerAfk, isPlayerAfk, getAfkPlayerNames } from "./afkdetection.js";
 
@@ -237,6 +237,9 @@ const commands: Command[] = [
                 movePlayerToTeam(target.id, targetTeam);
                 room.sendAnnouncement(`🎲 Random: ${target.name} moved to ${targetTeam === redPlayerIdList ? "Red" : "Blue"}.`, undefined, 0x00FF00, "bold");
             });
+
+            // Check if match can start after random assignment
+            checkAutoStart();
         }
     }
  ];
