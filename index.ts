@@ -70,6 +70,9 @@ HaxballJS.then(async (HBInit) => {
     // Initialize stats from database if not exists
     handlePlayerJoining(player);
     addToQueue(player.id);
+    
+    // Auto-start check after joining and team assignment
+    setTimeout(() => checkAutoStart(), 500);
   }
 
   room.onPlayerLeave = function (player: PlayerObject): void {
