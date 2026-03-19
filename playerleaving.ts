@@ -1,6 +1,6 @@
 import { removePlayerFromAfkMapsAndSets } from "./afkdetection.js";
 import { specPlayerIdList, redPlayerIdList, bluePlayerIdList, room, pauseUnpauseGame, restartGameWithCallback } from "./index.js";
-import { movePlayerToTeam, moveLastOppositeTeamMemberToSpec } from "./teammanagement.js";
+import { movePlayerToTeam, moveLastOppositeTeamMemberToSpec, checkAutoStart } from "./teammanagement.js";
 import { getNextSpectator } from "./spectatorQueue.js";
 
 export function handlePlayerLeaving(player: PlayerObject): void {
@@ -14,6 +14,7 @@ export function handlePlayerLeaving(player: PlayerObject): void {
     }
     removePlayerFromAfkMapsAndSets(playerId);
     if (playerList.length === 0) room.stopGame();
+    else checkAutoStart();
     console.log(`>>> ${player.name} left the room.`);
 }
 
