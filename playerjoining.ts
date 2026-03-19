@@ -22,7 +22,6 @@ export async function handlePlayerJoining(player: PlayerObject): Promise<void> {
      room.sendAnnouncement(`📜 Type !rules to see the server rules.`, playerId, 0xFFFF00, "bold", 0);
      room.sendAnnouncement(`💬 To talk in team chat press T.`, playerId, 0x00FFFF, "bold", 0);
      
-     specPlayerIdList.push(playerId);
     console.log(`>>> ${playerName} joined the room.`);
     checkAndRestartWithNewMode(playerList);
 }
