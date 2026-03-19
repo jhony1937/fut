@@ -1,6 +1,6 @@
 import { removePlayerFromAfkMapsAndSets } from "./afkdetection.js";
 import { room, pauseUnpauseGame, restartGameWithCallback } from "./index.js";
-import { movePlayerToTeam, moveLastOppositeTeamMemberToSpec, checkAutoStart, movePlayerToSpec } from "./teammanagement.js";
+import { movePlayerToTeam, moveLastOppositeTeamMemberToSpec, checkAutoStart } from "./teammanagement.js";
 import { getNextSpectator } from "./spectatorQueue.js";
 
 export function handlePlayerLeaving(player: PlayerObject): void {
