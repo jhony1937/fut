@@ -16,7 +16,6 @@ export const debuggingMode = false;
 const scoreLimit: number = 3;
 const timeLimit: number = 3;
 
-export const playerConnStrings = new Map<number, string>();
 export const adminAuthList: Set<string> = new Set(fs.readFileSync("lists/adminlist.txt", "utf8").split("\n").map((line: string) => line.trim()));
 export const badWordList: Set<string> = new Set(fs.readFileSync("lists/badwords.txt", "utf8").split("\n").map((line: string) => line.trim()));
 const tokenFile: string = process.env['HAXBALL_TOKEN'] || fs.readFileSync("token.txt", "utf8");
