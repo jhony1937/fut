@@ -6,7 +6,29 @@ import { displaySpectators, setPickingState } from "./autopick.js";
 export function movePlayerToTeam(playerId: number, teamPlayerIdList: number[]) {
     const teamId: number = teamPlayerIdList === redPlayerIdList ? 1 : 2;
     room.setPlayerTeam(playerId, teamId);
-    setLastPlayerActivityTimestamp(playerId);
+}
+
+/**
+ * Automatically assigns a player to the team with fewer players if there is space.
+ */
+export function autoAssignToTeam(playerId: number): boolean {
+    const TEAM_SIZE_LIMIT = 3;
+    const redCount = room.getPlayerList().filter(p => p.team === 1).length;
+    const blueCount = room.getPlayerList().filter(p => p.team === 2).length;
+
+    if (redCount < TEAM_SIZE_LIMIT || blueCount < TEAM_SIZE_LIMIT) {
+        if (redCount < blueCount) {
+            movePlayerToTeam(playerId, redPlayerIdList);
+        } else if (blueCount < redCount) {
+            movePlayerToTeam(playerId, bluePlayerIdList);
+        } else {
+            // Equal: assign randomly
+            const teamToJoin = Math.random() < 0.5 ? redPlayerIdList : bluePlayerIdList;
+            movePlayerToTeam(playerId, teamToJoin);
+        }
+        return true;
+    }
+    return false;
 }
 
 function movePlayerToSpec(playerId: number) {
