@@ -14,7 +14,7 @@ export function handlePlayerLeaving(player: PlayerObject): void {
     }
     removePlayerFromAfkMapsAndSets(playerId);
     if (playerList.length === 0) room.stopGame();
-    console.log(`>>> ${player.name} saiu da sala.`);
+    console.log(`>>> ${player.name} left the room.`);
 }
 
 function handleTeamPlayerLeaving(teamPlayerIdList: number[], playerList: PlayerObject[]) {
