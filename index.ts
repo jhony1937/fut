@@ -3,7 +3,7 @@ import * as fs from "fs";
 import { handlePlayerActivity, checkAndHandleInactivePlayers, resetAllActivityTimestamps, setGracePeriod } from "./afkdetection.js";
 import { handlePlayerJoining } from "./playerjoining.js";
 import { handlePlayerLeaving } from "./playerleaving.js";
-import { handleTeamWin } from "./teammanagement.js";
+import { handleTeamWin, checkAutoStart } from "./teammanagement.js";
 import { checkAndHandleBadWords, checkAndHandleSpam } from "./moderation.js";
 import { checkAndHandleCommands, isCommand } from "./commands.js";
 import { playerNames, incrementGoals, incrementAssists, incrementWin, getRankObjectByName, playerStatsCache, addPlayerToIKnow } from "./stats.js";
@@ -104,9 +104,10 @@ HaxballJS.then(async (HBInit) => {
              if (specIndex !== -1) specPlayerIdList.splice(specIndex, 1);
              const redIndex = redPlayerIdList.indexOf(changedPlayer.id);
              if (redIndex !== -1) redPlayerIdList.splice(redIndex, 1);
-         }
-     }
-   }
+          }
+      }
+      checkAutoStart();
+    }
 
   function checkBallTouch(): void {
     const ballPos = room.getBallPosition();
