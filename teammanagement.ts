@@ -31,9 +31,8 @@ export function autoAssignToTeam(playerId: number): boolean {
         } else if (blueCount < redCount) {
             movePlayerToTeam(playerId, bluePlayerIdList);
         } else {
-            // Equal: assign randomly
-            const teamToJoin = Math.random() < 0.5 ? redPlayerIdList : bluePlayerIdList;
-            movePlayerToTeam(playerId, teamToJoin);
+            // Equal (e.g. 1v0 or 1v1): assign to BLUE to complete 1v1 or keep balance
+            movePlayerToTeam(playerId, bluePlayerIdList);
         }
         return true;
     }
