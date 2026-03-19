@@ -1,13 +1,18 @@
 import { removePlayerFromAfkMapsAndSets } from "./afkdetection.js";
-import { bluePlayerIdList, redPlayerIdList, room } from "./index.js";
+import { room } from "./index.js";
 import { getNextSpectator, getFullQueueList } from "./spectatorQueue.js";
 import { displaySpectators, setPickingState } from "./autopick.js";
 
-export function movePlayerToTeam(playerId: number, teamPlayerIdList: number[]) {
-    const teamId: number = teamPlayerIdList === redPlayerIdList ? 1 : 2;
+/**
+ * Moves a player to a specific team (1 for Red, 2 for Blue).
+ */
+export function movePlayerToTeam(playerId: number, teamId: number) {
     room.setPlayerTeam(playerId, teamId);
 }
 
+/**
+ * Automatically assigns a player to the team with fewer players if there is space.
+ */
 export function autoAssignToTeam(playerId: number): boolean {
     const TEAM_SIZE_LIMIT = 3;
     const playerList = room.getPlayerList();
@@ -16,19 +21,19 @@ export function autoAssignToTeam(playerId: number): boolean {
 
     // Rule 1: First player alone -> move to RED
     if (playerList.length === 1) {
-        room.setPlayerTeam(playerId, 1);
+        movePlayerToTeam(playerId, 1);
         return true;
     }
 
     // Rule 2 & 3: Balance teams (up to 3x3)
     if (redCount < TEAM_SIZE_LIMIT || blueCount < TEAM_SIZE_LIMIT) {
         if (redCount < blueCount) {
-            room.setPlayerTeam(playerId, 1);
+            movePlayerToTeam(playerId, 1);
         } else if (blueCount < redCount) {
-            room.setPlayerTeam(playerId, 2);
+            movePlayerToTeam(playerId, 2);
         } else {
             // Equal (e.g. 1v1 or 2v2): assign to BLUE
-            room.setPlayerTeam(playerId, 2);
+            movePlayerToTeam(playerId, 2);
         }
         return true;
     }
@@ -52,20 +57,23 @@ export function checkAutoStart(): void {
     }
 }
 
-function movePlayerToSpec(playerId: number) {
+export function movePlayerToSpec(playerId: number) {
     room.setPlayerTeam(playerId, 0);
     removePlayerFromAfkMapsAndSets(playerId);
 }
 
 export function moveOneSpecToEachTeam(): void {
     const nextSpec1 = getNextSpectator();
-    if (nextSpec1) movePlayerToTeam(nextSpec1.id, redPlayerIdList);
+    if (nextSpec1) movePlayerToTeam(nextSpec1.id, 1);
     const nextSpec2 = getNextSpectator();
-    if (nextSpec2) movePlayerToTeam(nextSpec2.id, bluePlayerIdList);
+    if (nextSpec2) movePlayerToTeam(nextSpec2.id, 2);
 }
 
-export function moveLastOppositeTeamMemberToSpec(oppositeTeamPlayerIdList: number[]): void {
-    movePlayerToSpec(oppositeTeamPlayerIdList[oppositeTeamPlayerIdList.length - 1]!);
+export function moveLastOppositeTeamMemberToSpec(oppositeTeamId: number): void {
+    const oppositeTeamPlayers = room.getPlayerList().filter(p => p.team === oppositeTeamId);
+    if (oppositeTeamPlayers.length > 0) {
+        movePlayerToSpec(oppositeTeamPlayers[oppositeTeamPlayers.length - 1]!.id);
+    }
 }
 
 /**
@@ -74,19 +82,18 @@ export function moveLastOppositeTeamMemberToSpec(oppositeTeamPlayerIdList: numbe
  * - Losers go to spec.
  * - Top spectator moves to the losing team automatically.
  */
-export function handleTeamWin(winningTeamIdList: number[]) {
-    const losingTeamIdList = winningTeamIdList === redPlayerIdList ? bluePlayerIdList : redPlayerIdList;
+export function handleTeamWin(winningTeamId: number) {
+    const losingTeamId = winningTeamId === 1 ? 2 : 1;
+    const losers = room.getPlayerList().filter(p => p.team === losingTeamId);
     
     // Move all losers to spec
-    while (losingTeamIdList.length > 0) {
-        movePlayerToSpec(losingTeamIdList[0]!);
-    }
+    losers.forEach(p => movePlayerToSpec(p.id));
 
     // Move the FIRST available spectator to the losing team automatically
     const nextSpec = getNextSpectator();
     if (nextSpec) {
         room.sendAnnouncement(`📢 Auto-pick: ${nextSpec.name} moved to the losing team.`, undefined, 0x00FF00, "bold", 0);
-        movePlayerToTeam(nextSpec.id, losingTeamIdList);
+        movePlayerToTeam(nextSpec.id, losingTeamId);
     } else {
         const fullQueue = getFullQueueList();
         if (fullQueue.length > 0) {
