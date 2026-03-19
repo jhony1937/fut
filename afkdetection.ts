@@ -92,7 +92,6 @@ export function removePlayerFromAfkMapsAndSets(playerId: number): void {
  * Resets all activity timers for all team players, typically called at game start.
  */
 export function resetAllActivityTimestamps(): void {
-    const now = Date.now();
     lastPlayerActivityTimestamp.clear();
     hasPlayerBeenWarnedToMove.clear();
     
