@@ -1,6 +1,6 @@
 import { removePlayerFromAfkMapsAndSets, setLastPlayerActivityTimestamp } from "./afkdetection.js";
 import { bluePlayerIdList, redPlayerIdList, room } from "./index.js";
-import { getNextSpectator } from "./spectatorQueue.js";
+import { getNextSpectator, getFullQueueList } from "./spectatorQueue.js";
 import { displaySpectators, setPickingState } from "./autopick.js";
 
 export function movePlayerToTeam(playerId: number, teamPlayerIdList: number[]) {
@@ -39,13 +39,18 @@ export function handleTeamWin(winningTeamIdList: number[]) {
         movePlayerToSpec(losingTeamIdList[0]!);
     }
 
-    // Move the FIRST spectator to the losing team automatically
+    // Move the FIRST available spectator to the losing team automatically
     const nextSpec = getNextSpectator();
     if (nextSpec) {
         room.sendAnnouncement(`📢 Auto-pick: ${nextSpec.name} moved to the losing team.`, undefined, 0x00FF00, "bold", 0);
         movePlayerToTeam(nextSpec.id, losingTeamIdList);
     } else {
-        room.sendAnnouncement("📢 No spectators waiting for auto-pick.", undefined, 0xFFFF00, "bold", 0);
+        const fullQueue = getFullQueueList();
+        if (fullQueue.length > 0) {
+            room.sendAnnouncement("📢 No available players (all AFK)", undefined, 0xFF0000, "bold", 0);
+        } else {
+            room.sendAnnouncement("📢 No spectators waiting for auto-pick.", undefined, 0xFFFF00, "bold", 0);
+        }
     }
 
     // Enable picking phase and display list
