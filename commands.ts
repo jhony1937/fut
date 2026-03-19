@@ -10,6 +10,7 @@ import {
 import { getQueueList, getSpectatorByIndex } from "./spectatorQueue.js";
 import { movePlayerToTeam } from "./teammanagement.js";
 import { redPlayerIdList, bluePlayerIdList } from "./index.js";
+import { setPlayerAfk, removePlayerAfk, isPlayerAfk, getAfkPlayerNames } from "./afkdetection.js";
 
 interface Command {
     name: string;
@@ -95,6 +96,36 @@ const commands: Command[] = [
                 if (command.adminOnly && !player.admin) return;
                 room.sendAnnouncement(`${command.emoji} !${command.name}: ${command.description}`, player.id, 0xFFFFFF, "normal");
             });
+        }
+    },
+    {
+        name: "afk",
+        description: "toggle AFK status",
+        emoji: "💤",
+        adminOnly: false,
+        response: async (player: PlayerObject) => {
+            if (isPlayerAfk(player.id)) {
+                removePlayerAfk(player.id);
+                room.sendAnnouncement(`${player.name} is no longer AFK`, undefined, 0x00FF00, "bold");
+            } else {
+                setPlayerAfk(player.id);
+                room.sendAnnouncement(`${player.name} is now AFK`, undefined, 0xFFFF00, "bold");
+            }
+        }
+    },
+    {
+        name: "afklist",
+        description: "show all AFK players",
+        emoji: "📝",
+        adminOnly: false,
+        response: async (player: PlayerObject) => {
+            const afkNames = getAfkPlayerNames();
+            if (afkNames.length === 0) {
+                room.sendAnnouncement("AFK Players: None", player.id, 0x00FF00, "bold");
+                return;
+            }
+            room.sendAnnouncement("AFK Players:", player.id, 0xFFFF00, "bold");
+            afkNames.forEach((name) => room.sendAnnouncement(`* ${name}`, player.id, 0xFFFFFF, "normal"));
         }
     },
     {
