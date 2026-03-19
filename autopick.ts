@@ -1,4 +1,4 @@
-import { room, redPlayerIdList, bluePlayerIdList } from "./index.js";
+import { room } from "./index.js";
 import { getQueueList, getSpectatorByIndex } from "./spectatorQueue.js";
 import { movePlayerToTeam, checkAutoStart } from "./teammanagement.js";
 
@@ -49,9 +49,12 @@ export function handleCaptainPick(player: PlayerObject, message: string): boolea
     }
 
     // Move to the team with fewer players
-    const targetTeam = redPlayerIdList.length <= bluePlayerIdList.length ? redPlayerIdList : bluePlayerIdList;
-    movePlayerToTeam(target.id, targetTeam);
-    room.sendAnnouncement(`✅ ${target.name} was chosen and moved to ${targetTeam === redPlayerIdList ? "Red" : "Blue"}.`, undefined, 0x00FF00, "bold");
+    const redCount = room.getPlayerList().filter(p => p.team === 1).length;
+    const blueCount = room.getPlayerList().filter(p => p.team === 2).length;
+    const targetTeamId = redCount <= blueCount ? 1 : 2;
+    
+    movePlayerToTeam(target.id, targetTeamId);
+    room.sendAnnouncement(`✅ ${target.name} was chosen and moved to ${targetTeamId === 1 ? "Red" : "Blue"}.`, undefined, 0x00FF00, "bold");
 
     // Update and re-display the list
     displaySpectators();
