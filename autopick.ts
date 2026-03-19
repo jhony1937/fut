@@ -1,6 +1,6 @@
 import { room } from "./index.js";
 import { getQueueList, getSpectatorByIndex } from "./spectatorQueue.js";
-import { movePlayerToTeam, checkAutoStart } from "./teammanagement.js";
+import { movePlayerToTeam, applyPlayerCountLogic } from "./teammanagement.js";
 
 export let isPicking = false;
 
@@ -60,7 +60,7 @@ export function handleCaptainPick(player: PlayerObject, message: string): boolea
     displaySpectators();
     
     // Check if teams are now balanced and can start
-    checkAutoStart();
+    applyPlayerCountLogic();
     
     return true; // Suppress valid selection from chat
 }
