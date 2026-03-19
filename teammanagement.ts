@@ -100,13 +100,6 @@ export function applyPlayerCountLogic(): void {
     }
 }
 
-/**
- * Checks if teams are balanced (1v1, 2v2, 3v3) and starts the game if not running.
- */
-export function checkAutoStart(): void {
-    applyPlayerCountLogic();
-}
-
 export function movePlayerToSpec(playerId: number) {
     room.setPlayerTeam(playerId, 0);
     removePlayerFromAfkMapsAndSets(playerId);
