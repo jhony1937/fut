@@ -54,3 +54,11 @@ export function removePlayerFromAfkMapsAndSets(playerId: number): void {
     lastPlayerActivityTimestamp.delete(playerId);
     hasPlayerBeenWarnedToMove.delete(playerId);
 }
+
+export function resetAllActivityTimestamps(): void {
+    const now = Date.now();
+    for (const playerId of lastPlayerActivityTimestamp.keys()) {
+        lastPlayerActivityTimestamp.set(playerId, now);
+    }
+    hasPlayerBeenWarnedToMove.clear();
+}
