@@ -8,7 +8,7 @@ import {
     setPlayerRankInDB
 } from "./stats.js";
 import { getQueueList } from "./spectatorQueue.js";
-import { movePlayerToTeam, checkAutoStart } from "./teammanagement.js";
+import { movePlayerToTeam, applyPlayerCountLogic } from "./teammanagement.js";
 import { setPlayerAfk, removePlayerAfk, isPlayerAfk, getAfkPlayerNames } from "./afkdetection.js";
 
 interface Command {
@@ -234,13 +234,13 @@ const commands: Command[] = [
             selected.forEach(target => {
                 const redCount = room.getPlayerList().filter(p => p.team === 1).length;
                 const blueCount = room.getPlayerList().filter(p => p.team === 2).length;
-                const targetTeam = redCount <= blueCount ? 1 : 2;
-                movePlayerToTeam(target.id, targetTeam);
-                room.sendAnnouncement(`🎲 Random: ${target.name} moved to ${targetTeam === 1 ? "Red" : "Blue"}.`, undefined, 0x00FF00, "bold");
+                const targetTeamId = redCount <= blueCount ? 1 : 2;
+                movePlayerToTeam(target.id, targetTeamId);
+                room.sendAnnouncement(`🎲 Random: ${target.name} moved to ${targetTeamId === 1 ? "Red" : "Blue"}.`, undefined, 0x00FF00, "bold");
             });
 
             // Check if match can start after random assignment
-            checkAutoStart();
+            applyPlayerCountLogic();
         }
     }
  ];
