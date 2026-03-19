@@ -10,12 +10,21 @@ export function movePlayerToTeam(playerId: number, teamPlayerIdList: number[]) {
 
 /**
  * Automatically assigns a player to the team with fewer players if there is space.
+ * Follows the "First Player Red" rule.
  */
 export function autoAssignToTeam(playerId: number): boolean {
     const TEAM_SIZE_LIMIT = 3;
-    const redCount = room.getPlayerList().filter(p => p.team === 1).length;
-    const blueCount = room.getPlayerList().filter(p => p.team === 2).length;
+    const playerList = room.getPlayerList();
+    const redCount = playerList.filter(p => p.team === 1).length;
+    const blueCount = playerList.filter(p => p.team === 2).length;
 
+    // Rule 1: First player enters -> Red team
+    if (playerList.length === 1) {
+        movePlayerToTeam(playerId, redPlayerIdList);
+        return true;
+    }
+
+    // Rule 2: Balance teams (up to 3x3)
     if (redCount < TEAM_SIZE_LIMIT || blueCount < TEAM_SIZE_LIMIT) {
         if (redCount < blueCount) {
             movePlayerToTeam(playerId, redPlayerIdList);
@@ -29,6 +38,22 @@ export function autoAssignToTeam(playerId: number): boolean {
         return true;
     }
     return false;
+}
+
+/**
+ * Checks if teams are balanced (1v1, 2v2, 3v3) and starts the game if not running.
+ */
+export function checkAutoStart(): void {
+    const scores = room.getScores();
+    if (scores !== null) return; // Game already running
+
+    const redCount = room.getPlayerList().filter(p => p.team === 1).length;
+    const blueCount = room.getPlayerList().filter(p => p.team === 2).length;
+
+    // Start if teams are balanced and have at least 1 player each
+    if (redCount > 0 && redCount === blueCount) {
+        room.startGame();
+    }
 }
 
 function movePlayerToSpec(playerId: number) {
