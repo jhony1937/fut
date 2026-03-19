@@ -3,7 +3,7 @@ import * as fs from "fs";
 import { handlePlayerActivity, checkAndHandleInactivePlayers, resetAllActivityTimestamps, setGracePeriod } from "./afkdetection.js";
 import { handlePlayerJoining } from "./playerjoining.js";
 import { handlePlayerLeaving } from "./playerleaving.js";
-import { handleTeamWin, checkAutoStart } from "./teammanagement.js";
+import { handleTeamWin, checkAutoStart, applyPlayerCountLogic } from "./teammanagement.js";
 import { checkAndHandleBadWords, checkAndHandleSpam } from "./moderation.js";
 import { checkAndHandleCommands, isCommand } from "./commands.js";
 import { playerNames, incrementGoals, incrementAssists, incrementWin, getRankObjectByName, playerStatsCache, addPlayerToIKnow } from "./stats.js";
@@ -67,8 +67,8 @@ HaxballJS.then(async (HBInit) => {
     handlePlayerJoining(player);
     addToQueue(player.id);
     
-    // Auto-start check after joining and team assignment
-    setTimeout(() => checkAutoStart(), 500);
+    // Apply auto-assignment and auto-start logic
+    setTimeout(() => applyPlayerCountLogic(), 500);
   }
 
   room.onPlayerLeave = function (player: PlayerObject): void {
@@ -85,7 +85,7 @@ HaxballJS.then(async (HBInit) => {
          // Set a 45s grace period for players joining Red or Blue team
          setGracePeriod(changedPlayer.id, 45000);
      }
-     checkAutoStart();
+     applyPlayerCountLogic();
   }
 
   function checkBallTouch(): void {
