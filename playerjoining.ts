@@ -1,4 +1,4 @@
-import { room, specPlayerIdList, debuggingMode, adminAuthList, redPlayerIdList, restartGameWithCallback, bluePlayerIdList } from "./index.js";
+import { room, specPlayerIdList, adminAuthList, redPlayerIdList, restartGameWithCallback, bluePlayerIdList } from "./index.js";
 import { checkAndHandleBadWords } from "./moderation.js";
 import { movePlayerToTeam, moveOneSpecToEachTeam } from "./teammanagement.js";
 import { getPlayerStatsFromDB } from "./stats.js";
