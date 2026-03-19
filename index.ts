@@ -1,6 +1,6 @@
 import HaxballJS from "haxball.js";
 import * as fs from "fs";
-import { handlePlayerActivity, checkAndHandleInactivePlayers } from "./afkdetection.js";
+import { handlePlayerActivity, checkAndHandleInactivePlayers, resetAllActivityTimestamps, setLastPlayerActivityTimestamp } from "./afkdetection.js";
 import { handlePlayerJoining } from "./playerjoining.js";
 import { handlePlayerLeaving } from "./playerleaving.js";
 import { handleTeamWin } from "./teammanagement.js";
@@ -69,6 +69,7 @@ HaxballJS.then(async (HBInit) => {
     // Initialize stats from database if not exists
     handlePlayerJoining(player);
     addToQueue(player.id);
+    setLastPlayerActivityTimestamp(player.id);
   }
 
   room.onPlayerLeave = function (player: PlayerObject): void {
@@ -198,6 +199,7 @@ HaxballJS.then(async (HBInit) => {
     lastBallTouch = null;
     secondLastBallTouch = null;
     setPickingState(false);
+    resetAllActivityTimestamps();
   }
 
   room.onPositionsReset = function (): void {
