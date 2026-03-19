@@ -1,7 +1,7 @@
 import { room, adminAuthList } from "./index.js";
 import { getPlayerStatsFromDB } from "./stats.js";
 import { checkAndHandleBadWords } from "./moderation.js";
-import { autoAssignToTeam, checkAutoStart } from "./teammanagement.js";
+import { autoAssignToTeam, applyPlayerCountLogic } from "./teammanagement.js";
 
 export async function handlePlayerJoining(player: PlayerObject): Promise<void> {
     const playerId: number = player.id;
@@ -25,7 +25,7 @@ export async function handlePlayerJoining(player: PlayerObject): Promise<void> {
     if (!assigned) {
         room.sendAnnouncement("📋 Teams are full (3x3), you are in spectators.", playerId, 0xFFFF00, "normal");
     } else {
-        // Check if we can start the match (1v1, 2v2, 3v3)
-        checkAutoStart();
+        // Check if we can start the match based on total players
+        applyPlayerCountLogic();
     }
 }
