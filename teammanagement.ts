@@ -8,31 +8,27 @@ export function movePlayerToTeam(playerId: number, teamPlayerIdList: number[]) {
     room.setPlayerTeam(playerId, teamId);
 }
 
-/**
- * Automatically assigns a player to the team with fewer players if there is space.
- * Follows the "First Player Red" rule.
- */
 export function autoAssignToTeam(playerId: number): boolean {
     const TEAM_SIZE_LIMIT = 3;
     const playerList = room.getPlayerList();
     const redCount = playerList.filter(p => p.team === 1).length;
     const blueCount = playerList.filter(p => p.team === 2).length;
 
-    // Rule 1: First player enters -> Red team
+    // Rule 1: First player alone -> move to RED
     if (playerList.length === 1) {
-        movePlayerToTeam(playerId, redPlayerIdList);
+        room.setPlayerTeam(playerId, 1);
         return true;
     }
 
-    // Rule 2: Balance teams (up to 3x3)
+    // Rule 2 & 3: Balance teams (up to 3x3)
     if (redCount < TEAM_SIZE_LIMIT || blueCount < TEAM_SIZE_LIMIT) {
         if (redCount < blueCount) {
-            movePlayerToTeam(playerId, redPlayerIdList);
+            room.setPlayerTeam(playerId, 1);
         } else if (blueCount < redCount) {
-            movePlayerToTeam(playerId, bluePlayerIdList);
+            room.setPlayerTeam(playerId, 2);
         } else {
-            // Equal (e.g. 1v0 or 1v1): assign to BLUE to complete 1v1 or keep balance
-            movePlayerToTeam(playerId, bluePlayerIdList);
+            // Equal (e.g. 1v1 or 2v2): assign to BLUE
+            room.setPlayerTeam(playerId, 2);
         }
         return true;
     }
