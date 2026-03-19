@@ -1,6 +1,6 @@
 import HaxballJS from "haxball.js";
 import * as fs from "fs";
-import { handlePlayerActivity, checkAndHandleInactivePlayers, resetAllActivityTimestamps, setLastPlayerActivityTimestamp } from "./afkdetection.js";
+import { handlePlayerActivity, checkAndHandleInactivePlayers, resetAllActivityTimestamps, setGracePeriod } from "./afkdetection.js";
 import { handlePlayerJoining } from "./playerjoining.js";
 import { handlePlayerLeaving } from "./playerleaving.js";
 import { handleTeamWin } from "./teammanagement.js";
@@ -42,9 +42,9 @@ HaxballJS.then(async (HBInit) => {
     }
   });
   room = HBInit({
-    roomName: "Futsal|3v3|Testing|v Beta",
+    roomName: "Testing",
     maxPlayers: 20,
-    public: true,
+    public: false,
     noPlayer: true,
     geo: {
       code: "MA",
@@ -69,7 +69,6 @@ HaxballJS.then(async (HBInit) => {
     // Initialize stats from database if not exists
     handlePlayerJoining(player);
     addToQueue(player.id);
-    setLastPlayerActivityTimestamp(player.id);
   }
 
   room.onPlayerLeave = function (player: PlayerObject): void {
@@ -86,20 +85,25 @@ HaxballJS.then(async (HBInit) => {
          if (redIndex !== -1) redPlayerIdList.splice(redIndex, 1);
          const blueIndex = bluePlayerIdList.indexOf(changedPlayer.id);
          if (blueIndex !== -1) bluePlayerIdList.splice(blueIndex, 1);
-     } else if (changedPlayer.team === 1) {
-         removeFromQueue(changedPlayer.id);
-         if (!redPlayerIdList.includes(changedPlayer.id)) redPlayerIdList.push(changedPlayer.id);
-         const specIndex = specPlayerIdList.indexOf(changedPlayer.id);
-         if (specIndex !== -1) specPlayerIdList.splice(specIndex, 1);
-         const blueIndex = bluePlayerIdList.indexOf(changedPlayer.id);
-         if (blueIndex !== -1) bluePlayerIdList.splice(blueIndex, 1);
-     } else if (changedPlayer.team === 2) {
-         removeFromQueue(changedPlayer.id);
-         if (!bluePlayerIdList.includes(changedPlayer.id)) bluePlayerIdList.push(changedPlayer.id);
-         const specIndex = specPlayerIdList.indexOf(changedPlayer.id);
-         if (specIndex !== -1) specPlayerIdList.splice(specIndex, 1);
-         const redIndex = redPlayerIdList.indexOf(changedPlayer.id);
-         if (redIndex !== -1) redPlayerIdList.splice(redIndex, 1);
+     } else {
+         // Set a 45s grace period for players joining Red or Blue team
+         setGracePeriod(changedPlayer.id, 45000);
+         
+         if (changedPlayer.team === 1) {
+             removeFromQueue(changedPlayer.id);
+             if (!redPlayerIdList.includes(changedPlayer.id)) redPlayerIdList.push(changedPlayer.id);
+             const specIndex = specPlayerIdList.indexOf(changedPlayer.id);
+             if (specIndex !== -1) specPlayerIdList.splice(specIndex, 1);
+             const blueIndex = bluePlayerIdList.indexOf(changedPlayer.id);
+             if (blueIndex !== -1) bluePlayerIdList.splice(blueIndex, 1);
+         } else if (changedPlayer.team === 2) {
+             removeFromQueue(changedPlayer.id);
+             if (!bluePlayerIdList.includes(changedPlayer.id)) bluePlayerIdList.push(changedPlayer.id);
+             const specIndex = specPlayerIdList.indexOf(changedPlayer.id);
+             if (specIndex !== -1) specPlayerIdList.splice(specIndex, 1);
+             const redIndex = redPlayerIdList.indexOf(changedPlayer.id);
+             if (redIndex !== -1) redPlayerIdList.splice(redIndex, 1);
+         }
      }
    }
 
