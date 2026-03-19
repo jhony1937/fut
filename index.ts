@@ -32,6 +32,7 @@ let lastBallTouch: PlayerObject | null = null;
 let secondLastBallTouch: PlayerObject | null = null;
 
 export let room: RoomObject;
+export { getPlayerStatsFromDB } from "./stats.js";
 
 HaxballJS.then(async (HBInit) => {
   await initDatabase((updatedPlayer) => {
