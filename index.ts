@@ -3,7 +3,7 @@ import * as fs from "fs";
 import { handlePlayerActivity, checkAndHandleInactivePlayers, resetAllActivityTimestamps, setGracePeriod } from "./afkdetection.js";
 import { handlePlayerJoining } from "./playerjoining.js";
 import { handlePlayerLeaving } from "./playerleaving.js";
-import { handleTeamWin, checkAutoStart, applyPlayerCountLogic } from "./teammanagement.js";
+import { handleTeamWin, applyPlayerCountLogic } from "./teammanagement.js";
 import { checkAndHandleBadWords, checkAndHandleSpam } from "./moderation.js";
 import { checkAndHandleCommands, isCommand } from "./commands.js";
 import { playerNames, incrementGoals, incrementAssists, incrementWin, getRankObjectByName, playerStatsCache, addPlayerToIKnow } from "./stats.js";
@@ -12,7 +12,6 @@ import { isPicking, handleCaptainPick, handlePlayerLeavePick, setPickingState } 
 
 import { addToQueue, removeFromQueue } from "./spectatorQueue.js";
 
-export const debuggingMode = false;
 const scoreLimit: number = 3;
 const timeLimit: number = 3;
 
