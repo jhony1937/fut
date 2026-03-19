@@ -23,10 +23,6 @@ const practiceStadium: string = fs.readFileSync("stadiums/practice.hbs", "utf8")
 const stadium2x2: string = fs.readFileSync("stadiums/futsal2x2.hbs", "utf8");
 const stadium3x3: string = fs.readFileSync("stadiums/futsal3x3.hbs", "utf8");
 
-export let specPlayerIdList: number[] = [];
-export let redPlayerIdList: number[] = [];
-export let bluePlayerIdList: number[] = [];
-
 // New: variables to track last ball touches for goals and assists
 let lastBallTouch: PlayerObject | null = null;
 let secondLastBallTouch: PlayerObject | null = null;
@@ -84,33 +80,13 @@ HaxballJS.then(async (HBInit) => {
   room.onPlayerTeamChange = function (changedPlayer: PlayerObject, _byPlayer: PlayerObject): void {
      if (changedPlayer.team === 0) {
          addToQueue(changedPlayer.id);
-         if (!specPlayerIdList.includes(changedPlayer.id)) specPlayerIdList.push(changedPlayer.id);
-         const redIndex = redPlayerIdList.indexOf(changedPlayer.id);
-         if (redIndex !== -1) redPlayerIdList.splice(redIndex, 1);
-         const blueIndex = bluePlayerIdList.indexOf(changedPlayer.id);
-         if (blueIndex !== -1) bluePlayerIdList.splice(blueIndex, 1);
      } else {
+         removeFromQueue(changedPlayer.id);
          // Set a 45s grace period for players joining Red or Blue team
          setGracePeriod(changedPlayer.id, 45000);
-         
-         if (changedPlayer.team === 1) {
-             removeFromQueue(changedPlayer.id);
-             if (!redPlayerIdList.includes(changedPlayer.id)) redPlayerIdList.push(changedPlayer.id);
-             const specIndex = specPlayerIdList.indexOf(changedPlayer.id);
-             if (specIndex !== -1) specPlayerIdList.splice(specIndex, 1);
-             const blueIndex = bluePlayerIdList.indexOf(changedPlayer.id);
-             if (blueIndex !== -1) bluePlayerIdList.splice(blueIndex, 1);
-         } else if (changedPlayer.team === 2) {
-             removeFromQueue(changedPlayer.id);
-             if (!bluePlayerIdList.includes(changedPlayer.id)) bluePlayerIdList.push(changedPlayer.id);
-             const specIndex = specPlayerIdList.indexOf(changedPlayer.id);
-             if (specIndex !== -1) specPlayerIdList.splice(specIndex, 1);
-             const redIndex = redPlayerIdList.indexOf(changedPlayer.id);
-             if (redIndex !== -1) redPlayerIdList.splice(redIndex, 1);
-          }
-      }
-      checkAutoStart();
-    }
+     }
+     checkAutoStart();
+  }
 
   function checkBallTouch(): void {
     const ballPos = room.getBallPosition();
@@ -173,10 +149,9 @@ HaxballJS.then(async (HBInit) => {
 
     const scores = room.getScores();
     const teamScore = teamId === 1 ? scores.red : scores.blue;
-    const teamPlayerIdList = teamId === 1 ? redPlayerIdList : bluePlayerIdList;
     if (teamScore === scoreLimit || scores.time > timeLimit * 60) {
       await handleMatchEnd(teamId === 1 ? 1 : 2);
-      restartGameWithCallback(() => handleTeamWin(teamPlayerIdList));
+      restartGameWithCallback(() => handleTeamWin(teamId));
     }
   }
 
@@ -185,8 +160,7 @@ HaxballJS.then(async (HBInit) => {
   room.onTeamVictory = function (scores: ScoresObject): void {
     const winningTeam = scores.red > scores.blue ? 1 : 2;
     handleMatchEnd(winningTeam);
-    const teamPlayerIdList = winningTeam === 1 ? redPlayerIdList : bluePlayerIdList;
-    restartGameWithCallback(() => handleTeamWin(teamPlayerIdList));
+    restartGameWithCallback(() => handleTeamWin(winningTeam));
   }
 
   async function handleMatchEnd(winningTeam: number) {
