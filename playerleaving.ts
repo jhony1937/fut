@@ -1,35 +1,46 @@
 import { removePlayerFromAfkMapsAndSets } from "./afkdetection.js";
-import { specPlayerIdList, redPlayerIdList, bluePlayerIdList, room, pauseUnpauseGame, restartGameWithCallback } from "./index.js";
-import { movePlayerToTeam, moveLastOppositeTeamMemberToSpec, checkAutoStart } from "./teammanagement.js";
+import { room, pauseUnpauseGame, restartGameWithCallback } from "./index.js";
+import { movePlayerToTeam, moveLastOppositeTeamMemberToSpec, checkAutoStart, movePlayerToSpec } from "./teammanagement.js";
 import { getNextSpectator } from "./spectatorQueue.js";
 
 export function handlePlayerLeaving(player: PlayerObject): void {
-    const playerId: number = player.id;
-    let playerIdList: number[] = [];
     const playerList = room.getPlayerList();
-    if (redPlayerIdList.includes(playerId) || bluePlayerIdList.includes(playerId)) {
-        playerIdList = redPlayerIdList.includes(playerId) ? redPlayerIdList : bluePlayerIdList;
-        if (playerList.length !== 0) handleTeamPlayerLeaving(playerIdList, playerList);
-        playerIdList.splice(playerIdList.indexOf(playerId), 1);
+    
+    if (player.team !== 0) {
+        if (playerList.length !== 0) handleTeamPlayerLeaving(player);
     }
-    removePlayerFromAfkMapsAndSets(playerId);
-    if (playerList.length === 0) room.stopGame();
-    else checkAutoStart();
+    
+    removePlayerFromAfkMapsAndSets(player.id);
+    
+    if (playerList.length === 0) {
+        room.stopGame();
+    } else {
+        checkAutoStart();
+    }
+    
     console.log(`>>> ${player.name} left the room.`);
 }
 
-function handleTeamPlayerLeaving(teamPlayerIdList: number[], playerList: PlayerObject[]) {
-    const oppositeTeamPlayerIdList: number[] = teamPlayerIdList === redPlayerIdList ? bluePlayerIdList : redPlayerIdList;
+function handleTeamPlayerLeaving(leavingPlayer: PlayerObject) {
+    const playerList = room.getPlayerList();
+    const teamId = leavingPlayer.team;
+    const oppositeTeamId = teamId === 1 ? 2 : 1;
+    
     if (playerList.length === 1) {
-        restartGameWithCallback(() => movePlayerToTeam(playerList[0]!.id, redPlayerIdList));
-    } else if (specPlayerIdList.length === 0) {
-        restartGameWithCallback(() => moveLastOppositeTeamMemberToSpec(oppositeTeamPlayerIdList));
+        // Only one player left in the room
+        restartGameWithCallback(() => movePlayerToTeam(playerList[0]!.id, 1));
     } else {
         const nextSpec = getNextSpectator();
         if (nextSpec) {
-            movePlayerToTeam(nextSpec.id, teamPlayerIdList);
+            movePlayerToTeam(nextSpec.id, teamId);
         } else {
-            moveLastOppositeTeamMemberToSpec(oppositeTeamPlayerIdList);
+            // No spectators, move one from opposite team to balance if necessary
+            const oppositeTeamPlayers = playerList.filter(p => p.team === oppositeTeamId);
+            const currentTeamPlayers = playerList.filter(p => p.team === teamId);
+            
+            if (oppositeTeamPlayers.length > currentTeamPlayers.length + 1) {
+                moveLastOppositeTeamMemberToSpec(oppositeTeamId);
+            }
         }
         pauseUnpauseGame();
     }
