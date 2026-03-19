@@ -1,4 +1,5 @@
 import { room } from "./index.js";
+import { isPlayerAfk } from "./afkdetection.js";
 
 /**
  * Ordered list of spectator player IDs (FIFO)
@@ -27,20 +28,27 @@ export function removeFromQueue(playerId: number): void {
 }
 
 /**
- * Returns the current ordered list of spectators (PlayerObject[])
+ * Returns the current ordered list of spectators (PlayerObject[]) including AFK
  */
-export function getQueueList(): PlayerObject[] {
-    return (spectatorQueue
+export function getFullQueueList(): PlayerObject[] {
+    return spectatorQueue
         .map(id => room.getPlayer(id))
-        .filter((p) => p !== null && p !== undefined && p.team === 0)) as PlayerObject[];
+        .filter((p) => p !== null && p !== undefined && p.team === 0) as PlayerObject[];
 }
 
 /**
- * Gets the first spectator in the queue (FIFO)
+ * Returns the current ordered list of available spectators (non-AFK)
+ */
+export function getQueueList(): PlayerObject[] {
+    return getFullQueueList().filter((p) => !isPlayerAfk(p.id));
+}
+
+/**
+ * Gets the first available spectator in the queue (FIFO, non-AFK)
  */
 export function getNextSpectator(): PlayerObject | null {
     const list = getQueueList();
-    return list.length > 0 ? (list[0] as PlayerObject) : null;
+    return list.length > 0 ? list[0] as PlayerObject : null;
 }
 
 /**
