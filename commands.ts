@@ -7,7 +7,7 @@ import {
     setPlayerAssistsInDB,
     setPlayerRankInDB
 } from "./stats.js";
-import { getQueueList, getSpectatorByIndex } from "./spectatorQueue.js";
+import { getQueueList } from "./spectatorQueue.js";
 import { movePlayerToTeam } from "./teammanagement.js";
 import { redPlayerIdList, bluePlayerIdList } from "./index.js";
 import { setPlayerAfk, removePlayerAfk, isPlayerAfk, getAfkPlayerNames } from "./afkdetection.js";
