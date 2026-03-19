@@ -42,10 +42,11 @@ export function checkAutoStart(): void {
     const scores = room.getScores();
     if (scores !== null) return; // Game already running
 
-    const redCount = room.getPlayerList().filter(p => p.team === 1).length;
-    const blueCount = room.getPlayerList().filter(p => p.team === 2).length;
+    const playerList = room.getPlayerList();
+    const redCount = playerList.filter(p => p.team === 1).length;
+    const blueCount = playerList.filter(p => p.team === 2).length;
 
-    // Start if teams are balanced and have at least 1 player each
+    // Start if teams are balanced, have at least 1 player each, and total players in teams >= 2
     if (redCount > 0 && redCount === blueCount) {
         room.startGame();
     }
