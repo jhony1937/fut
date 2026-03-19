@@ -9,7 +9,6 @@ import {
 } from "./stats.js";
 import { getQueueList } from "./spectatorQueue.js";
 import { movePlayerToTeam, checkAutoStart } from "./teammanagement.js";
-import { redPlayerIdList, bluePlayerIdList } from "./index.js";
 import { setPlayerAfk, removePlayerAfk, isPlayerAfk, getAfkPlayerNames } from "./afkdetection.js";
 
 interface Command {
@@ -91,7 +90,7 @@ const commands: Command[] = [
         emoji: "❓",
         adminOnly: false,
         response: async (player: PlayerObject) => {
-            room.sendAnnouncement("� --- COMMANDS --- �", player.id, 0xFFFF00, "bold");
+            room.sendAnnouncement("❓ --- COMMANDS --- ❓", player.id, 0xFFFF00, "bold");
             commands.forEach((command) => {
                 if (command.adminOnly && !player.admin) return;
                 room.sendAnnouncement(`${command.emoji} !${command.name}: ${command.description}`, player.id, 0xFFFFFF, "normal");
@@ -233,9 +232,11 @@ const commands: Command[] = [
             const selected = shuffled.slice(0, count);
 
             selected.forEach(target => {
-                const targetTeam = redPlayerIdList.length <= bluePlayerIdList.length ? redPlayerIdList : bluePlayerIdList;
+                const redCount = room.getPlayerList().filter(p => p.team === 1).length;
+                const blueCount = room.getPlayerList().filter(p => p.team === 2).length;
+                const targetTeam = redCount <= blueCount ? 1 : 2;
                 movePlayerToTeam(target.id, targetTeam);
-                room.sendAnnouncement(`🎲 Random: ${target.name} moved to ${targetTeam === redPlayerIdList ? "Red" : "Blue"}.`, undefined, 0x00FF00, "bold");
+                room.sendAnnouncement(`🎲 Random: ${target.name} moved to ${targetTeam === 1 ? "Red" : "Blue"}.`, undefined, 0x00FF00, "bold");
             });
 
             // Check if match can start after random assignment
