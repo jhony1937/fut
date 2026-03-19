@@ -1,5 +1,5 @@
 import { removePlayerFromAfkMapsAndSets } from "./afkdetection.js";
-import { specPlayerIdList, playerConnStrings, redPlayerIdList, bluePlayerIdList, room, pauseUnpauseGame, restartGameWithCallback } from "./index.js";
+import { specPlayerIdList, redPlayerIdList, bluePlayerIdList, room, pauseUnpauseGame, restartGameWithCallback } from "./index.js";
 import { movePlayerToTeam, moveLastOppositeTeamMemberToSpec } from "./teammanagement.js";
 import { getNextSpectator } from "./spectatorQueue.js";
 
@@ -13,7 +13,6 @@ export function handlePlayerLeaving(player: PlayerObject): void {
         playerIdList.splice(playerIdList.indexOf(playerId), 1);
     }
     removePlayerFromAfkMapsAndSets(playerId);
-    playerConnStrings.delete(playerId);
     if (playerList.length === 0) room.stopGame();
     console.log(`>>> ${player.name} saiu da sala.`);
 }
