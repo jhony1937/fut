@@ -41,20 +41,70 @@ export function autoAssignToTeam(playerId: number): boolean {
 }
 
 /**
+ * Automatically assigns players to teams and starts the game based on total player count.
+ * Modes: 1 player (Red), 2-3 players (1v1), 4-5 players (2v2), 6+ players (3v3).
+ */
+export function applyPlayerCountLogic(): void {
+    const list = room.getPlayerList();
+    const count = list.length;
+    
+    if (count === 0) {
+        room.stopGame();
+        return;
+    }
+
+    let targetRed = 0;
+    let targetBlue = 0;
+
+    // Determine targets based on total players
+    if (count === 1) { 
+        targetRed = 1; targetBlue = 0; 
+    } else if (count === 2 || count === 3) { 
+        targetRed = 1; targetBlue = 1; 
+    } else if (count === 4 || count === 5) { 
+        targetRed = 2; targetBlue = 2; 
+    } else { 
+        targetRed = 3; targetBlue = 3; 
+    }
+
+    // Force move players to teams (RED first, then BLUE)
+    let currentRed = 0;
+    let currentBlue = 0;
+
+    // Use a specific order: existing RED players first, then existing BLUE, then SPECS
+    const sortedPool = [
+        ...list.filter(p => p.team === 1),
+        ...list.filter(p => p.team === 2),
+        ...list.filter(p => p.team === 0)
+    ];
+
+    for (const p of sortedPool) {
+        if (currentRed < targetRed) {
+            if (p.team !== 1) room.setPlayerTeam(p.id, 1);
+            currentRed++;
+        } else if (currentBlue < targetBlue) {
+            if (p.team !== 2) room.setPlayerTeam(p.id, 2);
+            currentBlue++;
+        } else {
+            if (p.team !== 0) room.setPlayerTeam(p.id, 0);
+        }
+    }
+
+    // Auto Start if game not running
+    const scores = room.getScores();
+    if (scores === null) {
+        // Start if 1 player (Red) or balanced teams (1v1, 2v2, 3v3)
+        if ((targetRed === 1 && targetBlue === 0) || (currentRed > 0 && currentRed === currentBlue)) {
+            room.startGame();
+        }
+    }
+}
+
+/**
  * Checks if teams are balanced (1v1, 2v2, 3v3) and starts the game if not running.
  */
 export function checkAutoStart(): void {
-    const scores = room.getScores();
-    if (scores !== null) return; // Game already running
-
-    const playerList = room.getPlayerList();
-    const redCount = playerList.filter(p => p.team === 1).length;
-    const blueCount = playerList.filter(p => p.team === 2).length;
-
-    // Start if teams are balanced, have at least 1 player each, and total players in teams >= 2
-    if (redCount > 0 && redCount === blueCount) {
-        room.startGame();
-    }
+    applyPlayerCountLogic();
 }
 
 export function movePlayerToSpec(playerId: number) {
