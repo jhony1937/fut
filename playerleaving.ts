@@ -2,8 +2,10 @@ import { removePlayerFromAfkMapsAndSets } from "./afkdetection.js";
 import { room, pauseUnpauseGame, restartGameWithCallback } from "./index.js";
 import { movePlayerToTeam, moveLastOppositeTeamMemberToSpec, applyPlayerCountLogic } from "./teammanagement.js";
 import { getNextSpectator } from "./spectatorQueue.js";
+import { isPicking } from "./autopick.js";
 
 export function handlePlayerLeaving(player: PlayerObject): void {
+    if (isPicking) return; // Let autopick handle it via handlePlayerLeavePick
     const playerList = room.getPlayerList();
     
     if (player.team !== 0) {
