@@ -267,9 +267,13 @@ export function restartGameWithCallback(callback: () => void): void {
   room.stopGame();
   callback();
   setAppropriateStadium();
-  room.startGame();
-  const playerList: PlayerObject[] = room.getPlayerList();
-  if (playerList.length !== 1) pauseUnpauseGame();
+  
+  // Only start game if NO picking is active
+  if (!isPicking) {
+    room.startGame();
+    const playerList: PlayerObject[] = room.getPlayerList();
+    if (playerList.length !== 1) pauseUnpauseGame();
+  }
 }
 
 function setAppropriateStadium() {
