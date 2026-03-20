@@ -56,7 +56,7 @@ HaxballJS.then(async (HBInit) => {
   room = HBInit({
     roomName: "🟨​Futsal|3v3|Ranked|Testing🟨​",
     maxPlayers: 20,
-    public: false,
+    public: true,
     noPlayer: true,
     geo: {
       code: "MA",
