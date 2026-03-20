@@ -23,6 +23,16 @@ const practiceStadium: string = fs.readFileSync("stadiums/practice.hbs", "utf8")
 const stadium2x2: string = fs.readFileSync("stadiums/futsal2x2.hbs", "utf8");
 const stadium3x3: string = fs.readFileSync("stadiums/futsal3x3.hbs", "utf8");
 
+// Map stadium names to content for comparison and easy access
+const stadiums: { [key: string]: string } = {
+  "1v1": practiceStadium,
+  "2v2": stadium2x2,
+  "3v3": stadium3x3
+};
+
+let currentStadiumName: string = "1v1";
+let stadiumChangeTimeout: NodeJS.Timeout | null = null;
+
 // New: variables to track last ball touches for goals and assists
 let lastBallTouch: PlayerObject | null = null;
 let secondLastBallTouch: PlayerObject | null = null;
@@ -39,9 +49,9 @@ HaxballJS.then(async (HBInit) => {
     }
   });
   room = HBInit({
-    roomName: "🟨​Futsal|3v3|Ranked|Testing🟨",
+    roomName: "🟨​Futsal|3v3|Ranked|testing🟨​",
     maxPlayers: 20,
-    public: true,
+    public: false,
     noPlayer: true,
     geo: {
       code: "MA",
@@ -67,6 +77,9 @@ HaxballJS.then(async (HBInit) => {
     handlePlayerJoining(player);
     addToQueue(player.id);
     
+    // Evaluate stadium on join
+    setAppropriateStadium();
+    
     // Apply auto-assignment and auto-start logic
     setTimeout(() => applyPlayerCountLogic(), 500);
   }
@@ -75,6 +88,9 @@ HaxballJS.then(async (HBInit) => {
     handlePlayerLeaving(player);
     handlePlayerLeavePick(player);
     removeFromQueue(player.id);
+    
+    // Evaluate stadium on leave
+    setAppropriateStadium();
   }
 
   room.onPlayerTeamChange = function (changedPlayer: PlayerObject, _byPlayer: PlayerObject): void {
@@ -85,6 +101,7 @@ HaxballJS.then(async (HBInit) => {
          // Set a 45s grace period for players joining Red or Blue team
          setGracePeriod(changedPlayer.id, 45000);
      }
+     setAppropriateStadium(); // Added stadium re-evaluation
      applyPlayerCountLogic();
   }
 
@@ -280,14 +297,31 @@ export function restartGameWithCallback(callback: () => void): void {
 }
 
 function setAppropriateStadium() {
-  const playerList = room.getPlayerList();
-  const playerListLength = playerList.length;
-  if (playerListLength === 1) {
-    room.setCustomStadium(practiceStadium);
-  } else if (playerListLength >= 6) {
-    room.setCustomStadium(stadium3x3);
+  const teamPlayersCount = room.getPlayerList().filter(p => p.team !== 0).length;
+  let targetStadiumName = "1v1";
+  
+  if (teamPlayersCount >= 6) {
+    targetStadiumName = "3v3";
+  } else if (teamPlayersCount >= 4) {
+    targetStadiumName = "2v2";
   } else {
-    room.setCustomStadium(stadium2x2);
+    targetStadiumName = "1v1";
+  }
+
+  // Change stadium only if different
+  if (targetStadiumName !== currentStadiumName) {
+    // Small delay (1 second) before changing stadium to avoid spam
+    if (stadiumChangeTimeout) clearTimeout(stadiumChangeTimeout);
+    
+    stadiumChangeTimeout = setTimeout(() => {
+      const stadiumContent = stadiums[targetStadiumName];
+      if (stadiumContent) {
+        room.setCustomStadium(stadiumContent);
+        currentStadiumName = targetStadiumName;
+        room.sendAnnouncement(`🏟 Stadium changed to ${targetStadiumName}`, undefined, 0x00FF00, "bold", 0);
+      }
+      stadiumChangeTimeout = null;
+    }, 1000);
   }
 }
 
