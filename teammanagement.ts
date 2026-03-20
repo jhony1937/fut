@@ -1,7 +1,7 @@
 import { removePlayerFromAfkMapsAndSets } from "./afkdetection.js";
 import { room } from "./index.js";
-import { getNextSpectator, getFullQueueList } from "./spectatorQueue.js";
-import { displaySpectators, setPickingState } from "./autopick.js";
+import { getNextSpectator } from "./spectatorQueue.js";
+import { startPickingPhase, isPicking } from "./autopick.js";
 
 /**
  * Moves a player to a specific team (1 for Red, 2 for Blue).
@@ -14,6 +14,7 @@ export function movePlayerToTeam(playerId: number, teamId: number) {
  * Automatically assigns a player to the team with fewer players if there is space.
  */
 export function autoAssignToTeam(playerId: number): boolean {
+    if (isPicking) return false;
     const TEAM_SIZE_LIMIT = 3;
     const playerList = room.getPlayerList();
     const redCount = playerList.filter(p => p.team === 1).length;
@@ -45,6 +46,7 @@ export function autoAssignToTeam(playerId: number): boolean {
  * Modes: 1 player (Red), 2-3 players (1v1), 4-5 players (2v2), 6+ players (3v3).
  */
 export function applyPlayerCountLogic(): void {
+    if (isPicking) return;
     const list = room.getPlayerList();
     const count = list.length;
     
@@ -121,32 +123,56 @@ export function moveLastOppositeTeamMemberToSpec(oppositeTeamId: number): void {
 
 /**
  * Handles team win logic: 
- * - Winners stay.
- * - Losers go to spec.
- * - Top spectator moves to the losing team automatically.
+ * - Losing team is moved to Spectators.
+ * - Winning team remains in place (Team Red).
+ * - First player in Spectators (FIFO) becomes Captain and moves to Team Blue.
  */
 export function handleTeamWin(winningTeamId: number) {
     const losingTeamId = winningTeamId === 1 ? 2 : 1;
-    const losers = room.getPlayerList().filter(p => p.team === losingTeamId);
+    const players = room.getPlayerList();
     
-    // Move all losers to spec
+    // Move losing team to spec
+    const losers = players.filter(p => p.team === losingTeamId);
     losers.forEach(p => movePlayerToSpec(p.id));
 
-    // Move the FIRST available spectator to the losing team automatically
-    const nextSpec = getNextSpectator();
-    if (nextSpec) {
-        room.sendAnnouncement(`📢 Auto-pick: ${nextSpec.name} moved to the losing team.`, undefined, 0x00FF00, "bold", 0);
-        movePlayerToTeam(nextSpec.id, losingTeamId);
+    // Move winning team to Red (if they aren't already)
+    const winners = players.filter(p => p.team === winningTeamId);
+    
+    // Determine target team size based on total players
+    const totalPlayersInRoom = players.length;
+    let targetTeamSize = 1;
+    if (totalPlayersInRoom >= 6) {
+        targetTeamSize = 3;
+    } else if (totalPlayersInRoom >= 4) {
+        targetTeamSize = 2;
     } else {
-        const fullQueue = getFullQueueList();
-        if (fullQueue.length > 0) {
-            room.sendAnnouncement("📢 No available players (all AFK)", undefined, 0xFF0000, "bold", 0);
-        } else {
-            room.sendAnnouncement("📢 No spectators waiting for auto-pick.", undefined, 0xFFFF00, "bold", 0);
-        }
+        targetTeamSize = 1;
     }
 
-    // Enable picking phase and display list
-    setPickingState(true);
-    displaySpectators();
+    // Move winners to Red, but trim if they exceed target size
+    winners.forEach((p, index) => {
+        if (index < targetTeamSize) {
+            if (p.team !== 1) movePlayerToTeam(p.id, 1);
+        } else {
+            // Extra winner goes to spec
+            movePlayerToSpec(p.id);
+        }
+    });
+
+    // Move next available spectator to Blue as Captain
+    const nextSpec = getNextSpectator();
+    if (nextSpec) {
+        const totalPicksNeeded = targetTeamSize - 1;
+        
+        if (totalPicksNeeded > 0) {
+            // Start picking phase
+            startPickingPhase(nextSpec.id, totalPicksNeeded);
+        } else {
+            // Just move the captain, no picks needed (1v1)
+            movePlayerToTeam(nextSpec.id, 2);
+            room.sendAnnouncement(`📢 Captain: ${nextSpec.name} moved to Blue. Match ready!`, undefined, 0x00FF00, "bold");
+        }
+    } else {
+        room.sendAnnouncement("📢 No spectators available to play.", undefined, 0xFFFF00, "bold");
+    }
 }
