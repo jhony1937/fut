@@ -4,7 +4,7 @@ import { handlePlayerActivity, checkAndHandleInactivePlayers, resetAllActivityTi
 import { handlePlayerJoining } from "./playerjoining.js";
 import { handlePlayerLeaving } from "./playerleaving.js";
 import { handleTeamWin, applyPlayerCountLogic } from "./teammanagement.js";
-import { checkAndHandleBadWords, checkAndHandleSpam } from "./moderation.js";
+import { checkAndHandleBadWords, checkAndHandleSpam, styleMessage } from "./moderation.js";
 import { checkAndHandleCommands, isCommand } from "./commands.js";
 import { playerNames, incrementGoals, incrementAssists, incrementWin, getRankObjectByName, playerStatsCache, addPlayerToIKnow } from "./stats.js";
 import { initDatabase } from "./database.js";
@@ -39,7 +39,7 @@ HaxballJS.then(async (HBInit) => {
     }
   });
   room = HBInit({
-    roomName: "🟨​Futsal|3v3|Ranked|Testing🟨​",
+    roomName: "🟨​Futsal|3v3|Ranked|Testing🟨",
     maxPlayers: 20,
     public: true,
     noPlayer: true,
@@ -249,6 +249,9 @@ HaxballJS.then(async (HBInit) => {
       if (pickHandled) return false; // Suppress pick from chat
     }
 
+    // Apply styled text and emojis
+    const styledMessage = styleMessage(message);
+
     // Custom chat display with rank using synchronous cache
     const stats = playerStatsCache.get(player.name);
     const rankName = stats ? stats.rank : "Unranked";
@@ -257,7 +260,7 @@ HaxballJS.then(async (HBInit) => {
     // Default bold for all
     const fontWeight = "bold";
     
-    room.sendAnnouncement(`[${rankObj.name}] ${player.name}: ${message}`, undefined, rankObj.color, fontWeight, 0);
+    room.sendAnnouncement(`[${rankObj.name}] ${player.name}: ${styledMessage}`, undefined, rankObj.color, fontWeight, 0);
     
     return false; // Suppress default chat
   }
