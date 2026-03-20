@@ -1,6 +1,6 @@
 import { room } from "./index.js";
 import { getQueueList, getSpectatorByIndex } from "./spectatorQueue.js";
-import { movePlayerToTeam } from "./teammanagement.js";
+import { movePlayerToTeam, applyPlayerCountLogic } from "./teammanagement.js";
 
 // Selection state
 export let isPicking = false;
