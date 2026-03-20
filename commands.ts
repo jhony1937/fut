@@ -103,6 +103,12 @@ const commands: Command[] = [
         emoji: "💤",
         adminOnly: false,
         response: async (player: PlayerObject) => {
+            // Fix: Check if player is in a match (Red or Blue team)
+            if (player.team !== 0) {
+                room.sendAnnouncement("❌ Impossible! You cannot use AFK during a match", player.id, 0xFF0000, "bold");
+                return;
+            }
+
             if (isPlayerAfk(player.id)) {
                 removePlayerAfk(player.id);
                 room.sendAnnouncement(`${player.name} is no longer AFK`, undefined, 0x00FF00, "bold");
