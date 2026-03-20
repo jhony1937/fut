@@ -109,18 +109,19 @@ export async function getPlayerStatsFromDB(playerName: string): Promise<PlayerSt
  * Updates a player's stats in the database and cache.
  */
 export async function updatePlayerStats(playerName: string, updates: Partial<PlayerStats>) {
+    const normalizedName = playerName.trim();
     try {
         const { data, error } = await supabase
             .from('players')
             .update(updates)
-            .eq('name', playerName)
+            .eq('name', normalizedName)
             .select()
             .single();
 
         if (error) throw error;
         
         if (data) {
-            playerStatsCache.set(playerName, data as PlayerStats);
+            playerStatsCache.set(normalizedName, data as PlayerStats);
         }
     } catch (err) {
         console.error("Error updating stats:", err);
