@@ -55,8 +55,8 @@ HaxballJS.then(async (HBInit) => {
   });
   room = HBInit({
     roomName: "🟨​Futsal|3v3|Ranked|Testing🟨​",
-    maxPlayers: 22,
-    public: true,
+    maxPlayers: 20,
+    public: false,
     noPlayer: true,
     geo: {
       code: "MA",
@@ -168,13 +168,6 @@ HaxballJS.then(async (HBInit) => {
     // Reset touches after goal
     lastBallTouch = null;
     secondLastBallTouch = null;
-
-    const scores = room.getScores();
-    const teamScore = teamId === 1 ? scores.red : scores.blue;
-    if (teamScore === scoreLimit || scores.time > timeLimit * 60) {
-      await handleMatchEnd(teamId === 1 ? 1 : 2);
-      restartGameWithCallback(() => handleTeamWin(teamId));
-    }
   }
 
   //triggers *only* when a team is winning and the timer runs out, 
@@ -285,7 +278,7 @@ HaxballJS.then(async (HBInit) => {
     const styledMessage = styleMessage(message);
 
     // Custom chat display with rank using synchronous cache
-    const stats = playerStatsCache.get(player.name);
+    const stats = playerStatsCache.get(player.name.trim());
     const rankName = stats ? stats.rank : "Unranked";
     const rankObj = getRankObjectByName(rankName);
     
