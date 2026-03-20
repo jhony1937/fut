@@ -66,3 +66,30 @@ function removeNumbersAndDiacritics(message: string): string {
     };
     return message.replace(/[013457]/g, m => replacements[m]!);
 }
+
+/**
+ * Styles specific words in a message and replaces them with emojis or styled text.
+ * Case-insensitive replacement.
+ */
+export function styleMessage(message: string): string {
+    let styled = message;
+    
+    // Replacements mapping (Case Insensitive)
+    const replacements: { [key: string]: string } = {
+        "gg": "𝙂𝙂",
+        "xd": "😂",
+        "shit": "💩"
+    };
+
+    for (const [word, replacement] of Object.entries(replacements)) {
+        // Use regex with 'gi' flag for case-insensitive global replacement
+        // Using \b to ensure we only replace whole words if needed, 
+        // but the prompt says "detect and replace specific words", 
+        // usually in Haxball this means any occurrence or whole words. 
+        // Let's use word boundaries for cleaner replacement unless they are part of other words.
+        const regex = new RegExp(`\\b${word}\\b`, 'gi');
+        styled = styled.replace(regex, replacement);
+    }
+
+    return styled;
+}
