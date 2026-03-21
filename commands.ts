@@ -9,7 +9,7 @@ import {
 } from "./stats.js";
 import { getQueueList } from "./spectatorQueue.js";
 import { movePlayerToTeam, applyPlayerCountLogic } from "./teammanagement.js";
-import { setPlayerAfk, removePlayerAfk, isPlayerAfk, getAfkPlayerNames } from "./afkdetection.js";
+import { setPlayerAfk, isPlayerAfk, getAfkPlayerNames } from "./afkdetection.js";
 
 interface Command {
     name: string;
@@ -99,28 +99,32 @@ const commands: Command[] = [
     },
     {
         name: "afk",
-        description: "toggle AFK status",
+        description: "Mark yourself as AFK",
         emoji: "💤",
         adminOnly: false,
         response: async (player: PlayerObject) => {
-            // Fix: Check if player is in a match (Red or Blue team)
+            // 1) AFK Command behavior as requested
             if (player.team !== 0) {
-                room.sendAnnouncement("❌ Impossible! You cannot use AFK during a match", player.id, 0xFF0000, "bold");
+                // If player is in a team (Red/Blue), block command
+                room.sendAnnouncement("❌ Impossible! You cannot go AFK during a match", player.id, 0xFF0000, "bold");
                 return;
             }
 
+            // If player is in spectators (team 0)
             if (isPlayerAfk(player.id)) {
-                removePlayerAfk(player.id);
-                room.sendAnnouncement(`${player.name} is no longer AFK`, undefined, 0x00FF00, "bold");
+                // If already AFK, inform the user
+                room.sendAnnouncement("✅ You are already AFK", player.id, 0x00FF00, "bold");
             } else {
+                // Mark player as AFK and send message
                 setPlayerAfk(player.id);
-                room.sendAnnouncement(`${player.name} is now AFK`, undefined, 0xFFFF00, "bold");
+                room.sendAnnouncement("😴 You are now AFK", player.id, 0xFFFF00, "bold");
+                // Optional global announcement if desired, but request asked for specific message to player
             }
         }
     },
     {
         name: "afklist",
-        description: "show all AFK players",
+        description: "Show the list of AFK players",
         emoji: "📝",
         adminOnly: false,
         response: async (player: PlayerObject) => {
@@ -129,8 +133,8 @@ const commands: Command[] = [
                 room.sendAnnouncement("AFK Players: None", player.id, 0x00FF00, "bold");
                 return;
             }
-            room.sendAnnouncement("AFK Players:", player.id, 0xFFFF00, "bold");
-            afkNames.forEach((name) => room.sendAnnouncement(`* ${name}`, player.id, 0xFFFFFF, "normal"));
+            room.sendAnnouncement(`📝 AFK Players (${afkNames.length}):`, player.id, 0xFFFF00, "bold");
+            afkNames.forEach((name) => room.sendAnnouncement(`- ${name}`, player.id, 0xFFFFFF, "normal"));
         }
     },
     {
@@ -268,3 +272,4 @@ export async function checkAndHandleCommands(player: PlayerObject, message: stri
         await command.response(player, args);
     }
 }
+
