@@ -1,11 +1,11 @@
-import { removePlayerFromAfkMapsAndSets } from "./afkdetection.js";
+import { removePlayerFromAfkMapsAndSets, removePlayerAfk } from "./afkdetection.js";
 import { room, pauseUnpauseGame, restartGameWithCallback } from "./index.js";
 import { movePlayerToTeam, moveLastOppositeTeamMemberToSpec, applyPlayerCountLogic } from "./teammanagement.js";
 import { getNextSpectator } from "./spectatorQueue.js";
-import { isPicking } from "./autopick.js";
+import { handlePlayerLeavePick, isPicking } from "./autopick.js";
 
 export function handlePlayerLeaving(player: PlayerObject): void {
-    if (isPicking) return; // Let autopick handle it via handlePlayerLeavePick
+    if (isPicking) handlePlayerLeavePick(player); 
     const playerList = room.getPlayerList();
     
     if (player.team !== 0) {
@@ -13,6 +13,7 @@ export function handlePlayerLeaving(player: PlayerObject): void {
     }
     
     removePlayerFromAfkMapsAndSets(player.id);
+    removePlayerAfk(player.id); // Ensure AFK status is cleared when leaving
     
     if (playerList.length === 0) {
         room.stopGame();
