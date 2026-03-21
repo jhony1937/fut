@@ -34,9 +34,9 @@ let currentStadiumName: string = "1v1";
 let stadiumChangeTimeout: NodeJS.Timeout | null = null;
 
 // Ball Physics Constants
-const BALL_RADIUS = 8.5; // Slightly smaller (default is 10)
-const BALL_DAMPING = 0.98; // Slightly more friction (default is 0.99)
-const BALL_BCOEFF = 0.45; // Softer bounce (default varies by stadium)
+const BALL_RADIUS = 8; // Futsal-like size (subtle smaller size)
+const BALL_DAMPING = 0.96; // Controlled speed (not too fast, not slow)
+const BALL_BCOEFF = 0.48; // Softer and more realistic bounce (for futsal feeling)
 
 // New: variables to track last ball touches for goals and assists
 let lastBallTouch: PlayerObject | null = null;
@@ -70,6 +70,7 @@ HaxballJS.then(async (HBInit) => {
   room.setTimeLimit(timeLimit);
   room.setTeamsLock(true);
   room.setCustomStadium(practiceStadium);
+  applyBallPhysics();
 
   room.onRoomLink = function (url: string) {
     console.log(url);
