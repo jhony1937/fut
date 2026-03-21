@@ -34,8 +34,8 @@ let currentStadiumName: string = "1v1";
 let stadiumChangeTimeout: NodeJS.Timeout | null = null;
 
 // Ball Physics Constants
-const BALL_RADIUS = 7; // Futsal-like size (subtle smaller size)
-const BALL_DAMPING = 0.98; // Controlled speed (not too fast, not slow)
+const BALL_RADIUS = 6; // Futsal-like size (subtle smaller size)
+const BALL_DAMPING = 0.99; // Controlled speed (not too fast, not slow)
 const BALL_BCOEFF = 0.65; // Softer and more realistic bounce (for futsal feeling)
 
 // New: variables to track last ball touches for goals and assists
