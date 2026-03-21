@@ -19,15 +19,15 @@ const timeLimit: number = 3;
 export const adminAuthList: Set<string> = new Set(fs.readFileSync("lists/adminlist.txt", "utf8").split("\n").map((line: string) => line.trim()));
 export const badWordList: Set<string> = new Set(fs.readFileSync("lists/badwords.txt", "utf8").split("\n").map((line: string) => line.trim()));
 const tokenFile: string = process.env['HAXBALL_TOKEN'] || fs.readFileSync("token.txt", "utf8");
-const practiceStadium: string = fs.readFileSync("stadiums/practice.hbs", "utf8");
-const stadium2x2: string = fs.readFileSync("stadiums/futsal2x2.hbs", "utf8");
-const stadium3x3: string = fs.readFileSync("stadiums/futsal3x3.hbs", "utf8");
+const smallStadium: string = fs.readFileSync("stadiums/small.hbs", "utf8");
+const mediumStadium: string = fs.readFileSync("stadiums/medium.hbs", "utf8");
+const bigStadium: string = fs.readFileSync("stadiums/big.hbs", "utf8");
 
 // Map stadium names to content for comparison and easy access
 const stadiums: { [key: string]: string } = {
-  "1v1": practiceStadium,
-  "2v2": stadium2x2,
-  "3v3": stadium3x3
+  "1v1": smallStadium,
+  "2v2": mediumStadium,
+  "3v3": bigStadium
 };
 
 let currentStadiumName: string = "1v1";
@@ -56,7 +56,7 @@ HaxballJS.then(async (HBInit) => {
   room = HBInit({
     roomName: "🟨​Futsal|3v3|Ranked|Testing🟨​",
     maxPlayers: 20,
-    public: true,
+    public: false,
     noPlayer: true,
     geo: {
       code: "MA",
@@ -69,7 +69,7 @@ HaxballJS.then(async (HBInit) => {
   room.setScoreLimit(scoreLimit);
   room.setTimeLimit(timeLimit);
   room.setTeamsLock(true);
-  room.setCustomStadium(practiceStadium);
+  room.setCustomStadium(smallStadium);
   applyBallPhysics();
 
   room.onRoomLink = function (url: string) {
@@ -327,7 +327,7 @@ function setAppropriateStadium() {
       if (stadiumContent) {
         room.setCustomStadium(stadiumContent);
         currentStadiumName = targetStadiumName;
-        room.sendAnnouncement(`🏟 Stadium changed to ${targetStadiumName}`, undefined, 0x00FF00, "bold", 0);
+        room.sendAnnouncement(`Stadium changed to ${targetStadiumName}`, undefined, 0x00FF00, "bold", 0);
       }
       stadiumChangeTimeout = null;
     }, 1000);
