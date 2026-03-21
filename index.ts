@@ -211,8 +211,8 @@ HaxballJS.then(async (HBInit) => {
     room.setDiscProperties(0, {
       radius: BALL_RADIUS,
       damping: BALL_DAMPING,
-      bCoef: BALL_BCOEFF
-    });
+      bCoeff: BALL_BCOEFF
+    } as any);
   }
 
   room.onPlayerActivity = function (player: PlayerObject): void {
