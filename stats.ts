@@ -32,11 +32,14 @@ export const RANKS = [
   { name: 'Bronze III', wins: 15, color: 0xCD7F32 },
   { name: 'Bronze II', wins: 10, color: 0xCD7F32 },
   { name: 'Bronze I', wins: 5, color: 0xCD7F32 },
+  { name: 'VIP', wins: 0, color: 0xFF00FF },
   { name: 'Unranked', wins: 0, color: 0xAAAAAA }
 ];
 
 export function getRankByWins(wins: number): string {
+  // We filter out special ranks like VIP from auto-ranking
   for (const rank of RANKS) {
+    if (rank.name === 'VIP') continue; 
     if (wins >= rank.wins) return rank.name;
   }
   return 'Unranked';
@@ -150,6 +153,14 @@ export async function incrementAssists(playerName: string) {
 export async function incrementWin(playerName: string): Promise<{ rankedUp: boolean, newRank: string }> {
     const stats = await getPlayerStatsFromDB(playerName);
     const newWins = stats.wins + 1;
+    
+    // If the player is VIP, they keep their rank unless you want them to be able to rank up
+    // Usually VIP is a fixed rank. Let's check if they are already VIP.
+    if (stats.rank === 'VIP') {
+        await updatePlayerStats(playerName, { wins: newWins });
+        return { rankedUp: false, newRank: 'VIP' };
+    }
+
     const newRank = getRankByWins(newWins);
     const rankedUp = newRank !== stats.rank;
 
