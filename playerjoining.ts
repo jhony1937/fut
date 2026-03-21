@@ -2,6 +2,7 @@ import { room, adminAuthList } from "./index.js";
 import { getPlayerStatsFromDB } from "./stats.js";
 import { checkAndHandleBadWords } from "./moderation.js";
 import { autoAssignToTeam, applyPlayerCountLogic } from "./teammanagement.js";
+import { setPickTimeout } from "./afkdetection.js";
 
 export async function handlePlayerJoining(player: PlayerObject): Promise<void> {
     const playerId: number = player.id;
@@ -12,6 +13,9 @@ export async function handlePlayerJoining(player: PlayerObject): Promise<void> {
     
     // Load player stats into cache
     await getPlayerStatsFromDB(playerName);
+    
+    // Set 10s pick timeout for new players
+    setPickTimeout(playerId);
     
     // Announcement and welcome
     room.sendAnnouncement(`${playerName} joined the game`, undefined, 0x0000FF, "bold", 0);
