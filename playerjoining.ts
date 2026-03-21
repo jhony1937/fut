@@ -9,7 +9,10 @@ export async function handlePlayerJoining(player: PlayerObject): Promise<void> {
     const playerName: string = player.name;
     
     if (checkAndHandleBadWords(player, playerName)) return;
-    if (adminAuthList.has(player.auth)) room.setPlayerAdmin(playerId, true);
+    
+    if (adminAuthList.has(player.auth)) {
+        room.setPlayerAdmin(playerId, true);
+    }
     
     // Load player stats into cache
     await getPlayerStatsFromDB(playerName);
