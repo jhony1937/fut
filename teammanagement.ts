@@ -1,4 +1,4 @@
-import { removePlayerFromAfkMapsAndSets } from "./afkdetection.js";
+import { removePlayerFromAfkMapsAndSets, setPickTimeout } from "./afkdetection.js";
 import { room } from "./index.js";
 import { getNextSpectator } from "./spectatorQueue.js";
 import { startPickingPhase, isPicking } from "./autopick.js";
@@ -8,6 +8,10 @@ import { startPickingPhase, isPicking } from "./autopick.js";
  */
 export function movePlayerToTeam(playerId: number, teamId: number) {
     room.setPlayerTeam(playerId, teamId);
+    // If moving from spectator to a team, reset their activity
+    if (teamId !== 0) {
+        removePlayerFromAfkMapsAndSets(playerId);
+    }
 }
 
 /**
@@ -82,13 +86,13 @@ export function applyPlayerCountLogic(): void {
 
     for (const p of sortedPool) {
         if (currentRed < targetRed) {
-            if (p.team !== 1) room.setPlayerTeam(p.id, 1);
+            if (p.team !== 1) movePlayerToTeam(p.id, 1);
             currentRed++;
         } else if (currentBlue < targetBlue) {
-            if (p.team !== 2) room.setPlayerTeam(p.id, 2);
+            if (p.team !== 2) movePlayerToTeam(p.id, 2);
             currentBlue++;
         } else {
-            if (p.team !== 0) room.setPlayerTeam(p.id, 0);
+            if (p.team !== 0) movePlayerToSpec(p.id);
         }
     }
 
@@ -105,6 +109,7 @@ export function applyPlayerCountLogic(): void {
 export function movePlayerToSpec(playerId: number) {
     room.setPlayerTeam(playerId, 0);
     removePlayerFromAfkMapsAndSets(playerId);
+    setPickTimeout(playerId); // Set 10s pick timeout when moving to spectators
 }
 
 export function moveOneSpecToEachTeam(): void {
