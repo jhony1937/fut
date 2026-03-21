@@ -1,6 +1,7 @@
 import { room } from "./index.js";
-import { getQueueList, getSpectatorByIndex } from "./spectatorQueue.js";
+import { getQueueList, getFullQueueList } from "./spectatorQueue.js";
 import { movePlayerToTeam, applyPlayerCountLogic } from "./teammanagement.js";
+import { isPlayerAfk, isPickTimeoutActive, getRemainingPickTimeout } from "./afkdetection.js";
 
 // Selection state
 export let isPicking = false;
@@ -47,7 +48,7 @@ export function startPickingPhase(captainId: number, totalPicks: number): void {
  * Displays the current spectator list with numbers
  */
 export function displaySpectators(targetPlayerId?: number): void {
-    const specs = getQueueList();
+    const specs = getFullQueueList(); // Show ALL specs so they can see who is AFK
     if (specs.length === 0) {
         if (isPicking) {
             room.sendAnnouncement("📢 No more spectators to pick.", undefined, 0xFFFF00, "bold");
@@ -58,7 +59,9 @@ export function displaySpectators(targetPlayerId?: number): void {
 
     room.sendAnnouncement("📋 --- SPECTATORS LIST --- 📋", targetPlayerId, 0x00FFFF, "bold");
     specs.forEach((spec, index) => {
-        room.sendAnnouncement(`${index + 1} - ${spec.name}`, targetPlayerId, 0xFFFFFF, "normal");
+        const afkStatus = isPlayerAfk(spec.id) ? " [AFK 😴]" : "";
+        const timeout = isPickTimeoutActive(spec.id) ? ` [Wait ${getRemainingPickTimeout(spec.id)}s ⏳]` : "";
+        room.sendAnnouncement(`${index + 1} - ${spec.name}${afkStatus}${timeout}`, targetPlayerId, 0xFFFFFF, "normal");
     });
 }
 
@@ -80,10 +83,26 @@ export function handleCaptainPick(player: PlayerObject, message: string): boolea
     const index = parseInt(trimmedMsg);
     if (isNaN(index)) return false; // Not a number, maybe normal chat
 
-    const target = getSpectatorByIndex(index);
-    if (!target) {
+    // Use full list for indexing but check AFK and Timeout
+    const specs = getFullQueueList();
+    if (index <= 0 || index > specs.length) {
         room.sendAnnouncement(`⚠️ Invalid number: No spectator found at ${index}.`, player.id, 0xFF0000, "normal");
-        return true; 
+        return true;
+    }
+
+    const target = specs[index - 1]!;
+    
+    // Check if player is AFK
+    if (isPlayerAfk(target.id)) {
+        room.sendAnnouncement("⚠️ This player is AFK and cannot be picked", player.id, 0xFF0000, "bold");
+        return true;
+    }
+
+    // Check if player is in pick timeout (inactive/new)
+    if (isPickTimeoutActive(target.id)) {
+        const remaining = getRemainingPickTimeout(target.id);
+        room.sendAnnouncement(`⏳ ${target.name} is AFK or inactive, please wait ${remaining} seconds before picking`, player.id, 0xFF0000, "bold");
+        return true;
     }
 
     executePick(target);
@@ -111,17 +130,17 @@ function executePick(target: PlayerObject): void {
 }
 
 /**
- * Picks a random player from the current spectators
+ * Picks a random player from the current spectators (skipping AFK)
  */
 function pickRandomPlayer(): void {
-    const specs = getQueueList();
-    if (specs.length === 0) {
+    const availableSpecs = getQueueList(); // This already filters out AFK
+    if (availableSpecs.length === 0) {
         finalizePicking();
         return;
     }
 
-    const randomIndex = Math.floor(Math.random() * specs.length);
-    const target = specs[randomIndex]!;
+    const randomIndex = Math.floor(Math.random() * availableSpecs.length);
+    const target = availableSpecs[randomIndex]!;
     executePick(target);
 }
 
