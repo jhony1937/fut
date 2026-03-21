@@ -17,6 +17,7 @@ const scoreLimit: number = 3;
 const timeLimit: number = 3;
 
 export const adminAuthList: Set<string> = new Set(fs.readFileSync("lists/adminlist.txt", "utf8").split("\n").map((line: string) => line.trim()));
+export const adminNameList: string[] = ["Player1", "Player2", "Player3"]; // Multi-admin system by name
 export const badWordList: Set<string> = new Set(fs.readFileSync("lists/badwords.txt", "utf8").split("\n").map((line: string) => line.trim()));
 const tokenFile: string = process.env['HAXBALL_TOKEN'] || fs.readFileSync("token.txt", "utf8");
 const smallStadium: string = fs.readFileSync("stadiums/small.hbs", "utf8");
@@ -36,7 +37,7 @@ let stadiumChangeTimeout: NodeJS.Timeout | null = null;
 // Ball Physics Constants
 const BALL_RADIUS = 6; // Futsal-like size (subtle smaller size)
 const BALL_DAMPING = 0.99; // Controlled speed (not too fast, not slow)
-const BALL_BCOEFF = 0.45; // Softer and more realistic bounce (for futsal feeling)
+const BALL_BCOEFF = 0.57; // Softer and more realistic bounce (for futsal feeling)
 
 // New: variables to track last ball touches for goals and assists
 let lastBallTouch: PlayerObject | null = null;
@@ -56,7 +57,7 @@ HaxballJS.then(async (HBInit) => {
   room = HBInit({
     roomName: "🟨​Futsal|3v3|Ranked|Testing🟨​",
     maxPlayers: 20,
-    public: true,
+    public: false,
     noPlayer: true,
     geo: {
       code: "MA",
