@@ -33,6 +33,13 @@ const stadiums: { [key: string]: string } = {
 let currentStadiumName: string = "1v1";
 let stadiumChangeTimeout: NodeJS.Timeout | null = null;
 
+/**
+ * Checks if a stadium change is currently scheduled.
+ */
+export function isStadiumChangePending(): boolean {
+  return stadiumChangeTimeout !== null;
+}
+
 // New: variables to track last ball touches for goals and assists
 let lastBallTouch: PlayerObject | null = null;
 let secondLastBallTouch: PlayerObject | null = null;
@@ -279,43 +286,70 @@ HaxballJS.then(async (HBInit) => {
 export function restartGameWithCallback(callback: () => void): void {
   room.stopGame();
   callback();
+  
+  // setAppropriateStadium will handle the start if a change is needed
   setAppropriateStadium();
   
-  // Only start game if NO picking is active
-  if (!isPicking) {
-    room.startGame();
-    const playerList: PlayerObject[] = room.getPlayerList();
-    if (playerList.length !== 1) pauseUnpauseGame();
-  }
+  // If NO stadium change is pending, we can start the game here
+  // We wait a tiny bit to see if setAppropriateStadium set a timeout
+  setTimeout(() => {
+    if (!stadiumChangeTimeout && !isPicking) {
+      room.startGame();
+      const playerList: PlayerObject[] = room.getPlayerList();
+      if (playerList.length !== 1) pauseUnpauseGame();
+    }
+  }, 100);
 }
 
 function setAppropriateStadium() {
-  const teamPlayersCount = room.getPlayerList().filter(p => p.team !== 0).length;
-  let targetStadiumName = "1v1";
+  // Recalculate the target stadium based on players currently in teams
+  const playersInTeams = room.getPlayerList().filter(p => p.team !== 0);
+  const teamPlayersCount = playersInTeams.length;
   
-  if (teamPlayersCount >= 6) {
-    targetStadiumName = "3v3";
-  } else if (teamPlayersCount >= 4) {
-    targetStadiumName = "2v2";
-  } else {
-    targetStadiumName = "1v1";
+  let targetStadiumName = teamPlayersCount >= 6 ? "3v3" : (teamPlayersCount >= 4 ? "2v2" : "1v1");
+
+  // If the target stadium is already active, just clear any pending changes and return
+  if (targetStadiumName === currentStadiumName) {
+    if (stadiumChangeTimeout) {
+      clearTimeout(stadiumChangeTimeout);
+      stadiumChangeTimeout = null;
+    }
+    return;
   }
 
-  // Change stadium only if different
-  if (targetStadiumName !== currentStadiumName) {
-    // Small delay (1 second) before changing stadium to avoid spam
-    if (stadiumChangeTimeout) clearTimeout(stadiumChangeTimeout);
-    
-    stadiumChangeTimeout = setTimeout(() => {
-      const stadiumContent = stadiums[targetStadiumName];
-      if (stadiumContent) {
-        room.setCustomStadium(stadiumContent);
-        currentStadiumName = targetStadiumName;
-        room.sendAnnouncement(`Stadium changed to ${targetStadiumName}`, undefined, 0x00FF00, "bold", 0);
-      }
-      stadiumChangeTimeout = null;
-    }, 1000);
+  // If a change is already pending for this target, don't do anything
+  // But if a change is pending for a DIFFERENT target, clear it and set the new one
+  if (stadiumChangeTimeout) {
+    clearTimeout(stadiumChangeTimeout);
   }
+
+  // Set a 1-second delay to stabilize the count and avoid spam
+  stadiumChangeTimeout = setTimeout(() => {
+    // Re-check target one last time inside timeout
+    const currentPlayersInTeams = room.getPlayerList().filter(p => p.team !== 0).length;
+    let finalTargetName = currentPlayersInTeams >= 6 ? "3v3" : (currentPlayersInTeams >= 4 ? "2v2" : "1v1");
+    let finalMapDisplayName = finalTargetName === "3v3" ? "Big (3v3)" : (finalTargetName === "2v2" ? "Medium (2v2)" : "Small (1v1)");
+
+    if (finalTargetName !== currentStadiumName) {
+      const stadiumContent = stadiums[finalTargetName];
+      if (stadiumContent) {
+        const scores = room.getScores();
+        const isGameRunning = scores !== null;
+
+        if (isGameRunning) {
+          room.stopGame();
+        }
+
+        room.setCustomStadium(stadiumContent);
+        currentStadiumName = finalTargetName;
+        room.sendAnnouncement(`🏟️ Map changed to: ${finalMapDisplayName}`, undefined, 0x00FF00, "bold", 0);
+        
+        // After stadium change, we always ensure teams are balanced and try to start
+        applyPlayerCountLogic();
+      }
+    }
+    stadiumChangeTimeout = null;
+  }, 1000);
 }
 
 export function pauseUnpauseGame() {
