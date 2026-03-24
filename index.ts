@@ -33,11 +33,6 @@ const stadiums: { [key: string]: string } = {
 let currentStadiumName: string = "1v1";
 let stadiumChangeTimeout: NodeJS.Timeout | null = null;
 
-// Ball Physics Constants
-const BALL_RADIUS = 6; // Futsal-like size (subtle smaller size)
-const BALL_DAMPING = 0.99; // Controlled speed (not too fast, not slow)
-const BALL_BCOEFF = 0.57; // Softer and more realistic bounce (for futsal feeling)
-
 // New: variables to track last ball touches for goals and assists
 let lastBallTouch: PlayerObject | null = null;
 let secondLastBallTouch: PlayerObject | null = null;
@@ -56,7 +51,7 @@ HaxballJS.then(async (HBInit) => {
   room = HBInit({
     roomName: "🟨​Futsal|3v3|Ranked|Testing🟨​",
     maxPlayers: 20,
-    public: true,
+    public: false,
     noPlayer: true,
     geo: {
       code: "MA",
@@ -70,7 +65,6 @@ HaxballJS.then(async (HBInit) => {
   room.setTimeLimit(timeLimit);
   room.setTeamsLock(true);
   room.setCustomStadium(smallStadium);
-  applyBallPhysics();
 
   room.onRoomLink = function (url: string) {
     console.log(url);
@@ -199,21 +193,11 @@ HaxballJS.then(async (HBInit) => {
     secondLastBallTouch = null;
     setPickingState(false);
     resetAllActivityTimestamps();
-    applyBallPhysics(); // Apply custom physics on start
   }
 
   room.onPositionsReset = function (): void {
     lastBallTouch = null;
     secondLastBallTouch = null;
-    applyBallPhysics(); // Re-apply physics on reset
-  }
-
-  function applyBallPhysics(): void {
-    room.setDiscProperties(0, {
-      radius: BALL_RADIUS,
-      damping: BALL_DAMPING,
-      bCoeff: BALL_BCOEFF
-    } as any);
   }
 
   room.onPlayerActivity = function (player: PlayerObject): void {
