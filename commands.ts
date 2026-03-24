@@ -246,7 +246,7 @@ const commands: Command[] = [
                 const blueCount = room.getPlayerList().filter(p => p.team === 2).length;
                 const targetTeamId = redCount <= blueCount ? 1 : 2;
                 movePlayerToTeam(target.id, targetTeamId);
-                room.sendAnnouncement(`🎲 Random: ${target.name} moved to ${targetTeamId === 1 ? "Red" : "Blue"}.`, undefined, 0x00FF00, "bold");
+                room.sendAnnouncement(`🎲 Random: ${target.name} moved to ${targetTeamId === 1 ? "Red" : "Blue"}.`, player.id, 0x00FF00, "bold");
             });
 
             // Check if match can start after random assignment
@@ -272,4 +272,3 @@ export async function checkAndHandleCommands(player: PlayerObject, message: stri
         await command.response(player, args);
     }
 }
-
