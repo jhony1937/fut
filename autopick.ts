@@ -38,9 +38,9 @@ export function startPickingPhase(captainId: number, totalPicks: number): void {
     // Move captain to Blue
     movePlayerToTeam(captainId, 2);
 
-    room.sendAnnouncement(`📢 Captain: ${captain.name} - Enter the player's number to select - You have 10 seconds.`, undefined, 0x00FFFF, "bold");
+    room.sendAnnouncement(`📢 Captain: ${captain.name} - Enter the player's number to select - You have 10 seconds.`, captainId, 0x00FFFF, "bold");
     
-    displaySpectators();
+    displaySpectators(captainId);
     resetPickTimer();
 }
 
@@ -49,19 +49,21 @@ export function startPickingPhase(captainId: number, totalPicks: number): void {
  */
 export function displaySpectators(targetPlayerId?: number): void {
     const specs = getFullQueueList(); // Show ALL specs so they can see who is AFK
+    const target = targetPlayerId ?? currentCaptainId ?? undefined;
+
     if (specs.length === 0) {
         if (isPicking) {
-            room.sendAnnouncement("📢 No more spectators to pick.", undefined, 0xFFFF00, "bold");
+            room.sendAnnouncement("📢 No more spectators to pick.", target, 0xFFFF00, "bold");
             finalizePicking();
         }
         return;
     }
 
-    room.sendAnnouncement("📋 --- SPECTATORS LIST --- 📋", targetPlayerId, 0x00FFFF, "bold");
+    room.sendAnnouncement("📋 --- SPECTATORS LIST --- 📋", target, 0x00FFFF, "bold");
     specs.forEach((spec, index) => {
         const afkStatus = isPlayerAfk(spec.id) ? " [AFK 😴]" : "";
         const timeout = isPickTimeoutActive(spec.id) ? ` [Wait ${getRemainingPickTimeout(spec.id)}s ⏳]` : "";
-        room.sendAnnouncement(`${index + 1} - ${spec.name}${afkStatus}${timeout}`, targetPlayerId, 0xFFFFFF, "normal");
+        room.sendAnnouncement(`${index + 1} - ${spec.name}${afkStatus}${timeout}`, target, 0xFFFFFF, "normal");
     });
 }
 
@@ -116,13 +118,13 @@ function executePick(target: PlayerObject): void {
     const captain = room.getPlayer(currentCaptainId!);
     const captainName = captain ? captain.name : "Captain";
 
-    room.sendAnnouncement(`[${captainName}] Select: ${target.name}.`, undefined, 0x00FF00, "bold");
+    room.sendAnnouncement(`[${captainName}] Select: ${target.name}.`, currentCaptainId!, 0x00FF00, "bold");
     movePlayerToTeam(target.id, 2); // Move to Blue
 
     picksRemaining--;
 
     if (picksRemaining > 0) {
-        displaySpectators();
+        displaySpectators(currentCaptainId!);
         resetPickTimer();
     } else {
         finalizePicking();
@@ -148,8 +150,11 @@ function pickRandomPlayer(): void {
  * Finalizes the picking phase and starts the game if possible
  */
 function finalizePicking(): void {
+    const captainId = currentCaptainId;
     setPickingState(false);
-    room.sendAnnouncement("✅ Picking phase complete!", undefined, 0x00FF00, "bold");
+    if (captainId) {
+        room.sendAnnouncement("✅ Picking phase complete!", captainId, 0x00FF00, "bold");
+    }
     
     // Auto start by checking logic
     applyPlayerCountLogic();
@@ -160,9 +165,10 @@ function finalizePicking(): void {
  */
 function resetPickTimer(): void {
     clearPickTimer();
+    const captainId = currentCaptainId;
     pickTimer = setTimeout(() => {
-        if (isPicking) {
-            room.sendAnnouncement("⏰ Time's up! Picking a random player...", undefined, 0xFF0000, "bold");
+        if (isPicking && captainId) {
+            room.sendAnnouncement("⏰ Time's up! Picking a random player...", captainId, 0xFF0000, "bold");
             pickRandomPlayer();
         }
     }, PICK_TIMEOUT_MS);
