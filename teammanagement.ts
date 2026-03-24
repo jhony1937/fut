@@ -1,5 +1,5 @@
 import { removePlayerFromAfkMapsAndSets, setPickTimeout } from "./afkdetection.js";
-import { room } from "./index.js";
+import { room, isStadiumChangePending } from "./index.js";
 import { getNextSpectator } from "./spectatorQueue.js";
 import { startPickingPhase, isPicking } from "./autopick.js";
 
@@ -18,7 +18,7 @@ export function movePlayerToTeam(playerId: number, teamId: number) {
  * Automatically assigns a player to the team with fewer players if there is space.
  */
 export function autoAssignToTeam(playerId: number): boolean {
-    if (isPicking) return false;
+    if (isPicking || isStadiumChangePending()) return false;
     const TEAM_SIZE_LIMIT = 3;
     const playerList = room.getPlayerList();
     const redCount = playerList.filter(p => p.team === 1).length;
@@ -50,7 +50,7 @@ export function autoAssignToTeam(playerId: number): boolean {
  * Modes: 1 player (Red), 2-3 players (1v1), 4-5 players (2v2), 6+ players (3v3).
  */
 export function applyPlayerCountLogic(): void {
-    if (isPicking) return;
+    if (isPicking || isStadiumChangePending()) return;
     const list = room.getPlayerList();
     const count = list.length;
     
