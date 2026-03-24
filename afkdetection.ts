@@ -1,7 +1,8 @@
-import { room } from "./index.js";
+import { room, immuneAuthList } from "./index.js";
 
 const lastPlayerActivityTimestamp = new Map<number, number>();
 const lastPlayerPosition = new Map<number, { x: number, y: number }>();
+const fixedPosition = new Map<number, { x: number, y: number }>();
 const gracePeriodExpiry = new Map<number, number>();
 const hasPlayerBeenWarnedToMove = new Set<number>();
 const afkPlayers = new Set<number>();
@@ -9,6 +10,37 @@ const pickTimeoutExpiry = new Map<number, number>();
 
 export function setLastPlayerActivityTimestamp(playerId: number) {
     lastPlayerActivityTimestamp.set(playerId, Date.now());
+}
+
+/**
+ * Checks if a player is immune to kicks.
+ */
+export function isPlayerImmune(playerId: number): boolean {
+    const player = room.getPlayer(playerId);
+    return player ? immuneAuthList.has(player.auth) : false;
+}
+
+/**
+ * Tracks and enforces fixed positions for immune players if they are in a team.
+ */
+export function handleImmunePlayerFreezing(): void {
+    const players = room.getPlayerList();
+    for (const p of players) {
+        if (isPlayerImmune(p.id)) {
+            // Optional: freeze immune players if they are in a team (not spectators)
+            if (p.team !== 0 && p.position) {
+                const pos = fixedPosition.get(p.id);
+                if (!pos) {
+                    fixedPosition.set(p.id, { x: p.position.x, y: p.position.y });
+                } else {
+                    // Force them back to their initial position
+                    room.setPlayerDiscProperties(p.id, { x: pos.x, y: pos.y, xspeed: 0, yspeed: 0 } as any);
+                }
+            } else {
+                fixedPosition.delete(p.id);
+            }
+        }
+    }
 }
 
 /**
@@ -90,7 +122,7 @@ export function checkAndHandleInactivePlayers() {
         const player = room.getPlayer(playerId);
         
         // Safety checks: player must exist, be in a team, and NOT be in a grace period
-        if (!player || player.team === 0) {
+        if (!player || player.team === 0 || isPlayerImmune(playerId)) {
             lastPlayerActivityTimestamp.delete(playerId);
             lastPlayerPosition.delete(playerId);
             gracePeriodExpiry.delete(playerId);
@@ -129,6 +161,7 @@ export function checkAndHandleInactivePlayers() {
 export function removePlayerFromAfkMapsAndSets(playerId: number): void {
     lastPlayerActivityTimestamp.delete(playerId);
     lastPlayerPosition.delete(playerId);
+    fixedPosition.delete(playerId);
     gracePeriodExpiry.delete(playerId);
     hasPlayerBeenWarnedToMove.delete(playerId);
     pickTimeoutExpiry.delete(playerId);
