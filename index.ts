@@ -16,10 +16,25 @@ export const debuggingMode = false;
 const scoreLimit: number = 3;
 const timeLimit: number = 3;
 
-export const adminAuthList: Set<string> = new Set(fs.readFileSync("lists/adminlist.txt", "utf8").split("\n").map((line: string) => line.trim()));
-export const immuneAuthList: Set<string> = new Set(fs.readFileSync("lists/immunelist.txt", "utf8").split("\n").map((line: string) => line.trim()));
-export const badWordList: Set<string> = new Set(fs.readFileSync("lists/badwords.txt", "utf8").split("\n").map((line: string) => line.trim()));
-const tokenFile: string = process.env['HAXBALL_TOKEN'] || fs.readFileSync("token.txt", "utf8");
+/**
+ * Helper to load a list from a file safely.
+ */
+function loadListFile(path: string): Set<string> {
+  try {
+    if (fs.existsSync(path)) {
+      return new Set(fs.readFileSync(path, "utf8").split("\n").map((line: string) => line.trim()).filter(line => line.length > 0));
+    }
+  } catch (err) {
+    console.error(`[Error] Failed to load list file: ${path}`, err);
+  }
+  return new Set<string>();
+}
+
+export const adminAuthList: Set<string> = loadListFile("lists/adminlist.txt");
+export const immuneAuthList: Set<string> = loadListFile("lists/immunelist.txt");
+export const badWordList: Set<string> = loadListFile("lists/badwords.txt");
+
+const tokenFile: string = process.env['HAXBALL_TOKEN'] || (fs.existsSync("token.txt") ? fs.readFileSync("token.txt", "utf8") : "");
 const smallStadium: string = fs.readFileSync("stadiums/small.hbs", "utf8");
 const mediumStadium: string = fs.readFileSync("stadiums/medium.hbs", "utf8");
 const bigStadium: string = fs.readFileSync("stadiums/big.hbs", "utf8");
