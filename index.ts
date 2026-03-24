@@ -49,6 +49,10 @@ const stadiums: { [key: string]: string } = {
 let currentStadiumName: string = "1v1";
 let stadiumChangeTimeout: NodeJS.Timeout | null = null;
 
+// Win streaks for each team
+let redStreak: number = 0;
+let blueStreak: number = 0;
+
 /**
  * Checks if a stadium change is currently scheduled.
  */
@@ -135,6 +139,7 @@ HaxballJS.then(async (HBInit) => {
   room.setTimeLimit(timeLimit);
   room.setTeamsLock(true);
   room.setCustomStadium(smallStadium);
+  applyTeamColors(); // Set default colors initially
 
   room.onRoomLink = function (url: string) {
     console.log(url);
@@ -239,6 +244,24 @@ HaxballJS.then(async (HBInit) => {
   //because the room is also listening for the onTeamGoal event, which triggers first
   room.onTeamVictory = function (scores: ScoresObject): void {
     const winningTeam = scores.red > scores.blue ? 1 : 2;
+    
+    // Manage streaks
+    if (winningTeam === 1) {
+      redStreak++;
+      blueStreak = 0;
+      if (redStreak >= 5) {
+        room.sendAnnouncement(`🏆 RED TEAM is on a 5-win streak! They are now GOLD!`, undefined, 0xFFD700, "bold", 0);
+      }
+    } else {
+      blueStreak++;
+      redStreak = 0;
+      if (blueStreak >= 5) {
+        room.sendAnnouncement(`🏆 BLUE TEAM is on a 5-win streak! They are now GOLD!`, undefined, 0xFFD700, "bold", 0);
+      }
+    }
+    
+    applyTeamColors(); // Update colors based on streaks
+
     handleMatchEnd(winningTeam);
     restartGameWithCallback(() => handleTeamWin(winningTeam));
   }
@@ -268,6 +291,22 @@ HaxballJS.then(async (HBInit) => {
   room.onPositionsReset = function (): void {
     lastBallTouch = null;
     secondLastBallTouch = null;
+  }
+
+  function applyTeamColors(): void {
+    // Red Team (ID 1)
+    if (redStreak >= 5) {
+      room.setTeamColors(1, 45, 0xFFFFFF, [0xFFD700, 0xDAA520, 0xB8860B]); // Gold
+    } else {
+      room.setTeamColors(1, 45, 0xFFFFFF, [0xFF3333, 0x990000]); // Red
+    }
+
+    // Blue Team (ID 2)
+    if (blueStreak >= 5) {
+      room.setTeamColors(2, 45, 0xFFFFFF, [0xFFD700, 0xDAA520, 0xB8860B]); // Gold
+    } else {
+      room.setTeamColors(2, 45, 0xFFFFFF, [0x3366FF, 0x0033CC]); // Blue
+    }
   }
 
   room.onPlayerActivity = function (player: PlayerObject): void {
