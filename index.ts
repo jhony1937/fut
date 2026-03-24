@@ -44,6 +44,53 @@ export function isStadiumChangePending(): boolean {
 let lastBallTouch: PlayerObject | null = null;
 let secondLastBallTouch: PlayerObject | null = null;
 
+// Accurate Ball Tracking for Goal Speed (km/h)
+let lastBallX: number = 0;
+let lastBallY: number = 0;
+let lastBallTime: number = 0;
+let lastValidSpeedKmh: number = 0;
+const MAX_SPEED_KMH = 120; // Clamp unrealistic speeds
+const SPEED_FILTER_THRESHOLD = 0.05; // Ignore tiny movements (noise)
+
+/**
+ * Tracks ball movement and calculates speed in km/h.
+ * Called on every game tick for accuracy.
+ */
+function updateBallSpeedTracking(): void {
+  const ballPos = room.getBallPosition();
+  if (!ballPos) return;
+
+  const now = Date.now();
+  if (lastBallTime > 0) {
+    const dt = (now - lastBallTime) / 1000; // time in seconds
+    if (dt > 0) {
+      const dx = ballPos.x - lastBallX;
+      const dy = ballPos.y - lastBallY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      // Filter out micro-movements (noise/lag)
+      if (distance > SPEED_FILTER_THRESHOLD) {
+        // Speed Calculation: distance / time
+        // Calibration: factor to convert units/sec to realistic km/h
+        // (Approx 0.45 is a common realistic factor for standard maps)
+        let speed = (distance / dt) * 0.45;
+
+        // Apply clamping (max 120 km/h)
+        if (speed > MAX_SPEED_KMH) speed = MAX_SPEED_KMH;
+
+        // Use a simple moving average for stability (30% new speed, 70% old)
+        // This prevents spikes from single-tick teleports or lag.
+        lastValidSpeedKmh = lastValidSpeedKmh * 0.7 + speed * 0.3;
+      }
+    }
+  }
+
+  // Store for next tick
+  lastBallX = ballPos.x;
+  lastBallY = ballPos.y;
+  lastBallTime = now;
+}
+
 export let room: RoomObject;
 export { getPlayerStatsFromDB } from "./stats.js";
 
@@ -138,9 +185,8 @@ HaxballJS.then(async (HBInit) => {
   }
 
   async function handleGoal(teamId: number) {
-    const ballProps = room.getDiscProperties(0);
-    const speed = ballProps ? Math.sqrt(ballProps.xspeed * ballProps.xspeed + ballProps.yspeed * ballProps.yspeed) * 100 : 0;
-    const speedFormatted = Math.round(speed);
+    // Use the tracked peak/last valid speed from our calculation logic
+    const speedFormatted = Math.round(lastValidSpeedKmh);
 
     let scorerName = "Unknown";
     let assistantName = "None";
@@ -162,14 +208,15 @@ HaxballJS.then(async (HBInit) => {
     }
 
     // Announcement
-    room.sendAnnouncement("GOAL ⚽", undefined, 0xFFFF00, "bold", 0);
-    room.sendAnnouncement(`Scorer: ${scorerName}`, undefined, 0xFFFF00, "bold", 0);
-    room.sendAnnouncement(`Assist: ${assistantName}`, undefined, 0xFFFF00, "bold", 0);
-    room.sendAnnouncement(`Speed: ${speedFormatted} km/h`, undefined, 0xFFFF00, "bold", 0);
+    room.sendAnnouncement("⚽ Goal!", undefined, 0xFFFF00, "bold", 0);
+    room.sendAnnouncement(`👤 Scorer: ${scorerName}`, undefined, 0xFFFF00, "bold", 0);
+    room.sendAnnouncement(`👟 Assist: ${assistantName}`, undefined, 0xFFFF00, "bold", 0);
+    room.sendAnnouncement(`🚀 Speed: ${speedFormatted} km/h`, undefined, 0xFFFF00, "bold", 0);
 
-    // Reset touches after goal
+    // Reset speed and touches after goal
     lastBallTouch = null;
     secondLastBallTouch = null;
+    lastValidSpeedKmh = 0;
   }
 
   //triggers *only* when a team is winning and the timer runs out, 
@@ -214,6 +261,7 @@ HaxballJS.then(async (HBInit) => {
   room.onGameTick = function (): void {
     if (!debuggingMode) checkAndHandleInactivePlayers();
     checkBallTouch();
+    updateBallSpeedTracking();
   }
 
   room.onPlayerChat = function (player: PlayerObject, message: string): boolean {
