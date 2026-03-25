@@ -279,7 +279,7 @@ const commands: Command[] = [
             // custom message 
             room.sendAnnouncement(
                 `⚠️ ${player.name} used !bb and left the server.`,
-                null,
+                undefined,
                 0xFF0000,
                 "bold"
             );
