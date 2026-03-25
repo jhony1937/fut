@@ -404,9 +404,8 @@ HaxballJS.then(async (HBInit) => {
     const ballProperties = room.getDiscProperties(0); // Disc 0 is usually the ball
     if (ballProperties) {
       room.setDiscProperties(0, {
+        ...ballProperties,
         radius: ballProperties.radius - 1,
-        // velocity and acceleration are maintained by not overriding them or explicitly setting them
-        // In Haxball Headless API, setDiscProperties only updates provided fields.
       });
     }
   }
