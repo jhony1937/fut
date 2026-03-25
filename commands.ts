@@ -10,7 +10,7 @@ import {
 import { getQueueList } from "./spectatorQueue.js";
 import { movePlayerToTeam, applyPlayerCountLogic } from "./teammanagement.js";
 import { setPlayerAfk, isPlayerAfk, getAfkPlayerNames } from "./afkdetection.js";
-import { addBan, removeBan, getBanList, getPlayerByTag } from "./banlist.js";
+import { addBan, removeBan, getBanList, getPlayerByTag, loadBanList } from "./banlist.js";
 
 interface Command {
     name: string;
@@ -311,6 +311,11 @@ const commands: Command[] = [
                 return;
             }
 
+            if (target.id === player.id) {
+                room.sendAnnouncement("❌ You can't ban yourself.", player.id, 0xFF0000, "bold");
+                return;
+            }
+
             await addBan(target, reason);
             room.sendAnnouncement(`🚫 ${target.name} has been banned. Reason: ${reason}`, undefined, 0xFF0000, "bold");
             room.kickPlayer(target.id, `Banned: ${reason}`, true);
@@ -322,6 +327,7 @@ const commands: Command[] = [
         emoji: "📋",
         adminOnly: true,
         response: async (player: PlayerObject) => {
+            await loadBanList(); // Ensure list is up to date
             const bans = getBanList();
             if (bans.length === 0) {
                 room.sendAnnouncement("📋 Ban list is empty.", player.id, 0x00FF00, "bold");
