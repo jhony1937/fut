@@ -14,32 +14,35 @@ export function getTargetTeamSize(): number {
 
 /**
  * Automatically balances teams for 1v1, 2v2, or 3v3 matches.
- * Rule: If only one player is in the room, they are moved to RED.
+ * Rule: If teams are empty (0 players in Red and Blue), move the first player to RED.
  * Otherwise, fills Red first, then Blue from the spectator queue.
  */
 export function autoBalanceTeams(): void {
     const players = room.getPlayerList();
+    const redPlayers = players.filter(p => p.team === 1);
+    const bluePlayers = players.filter(p => p.team === 2);
     
-    // 1. Rule for single player in room
-    if (players.length === 1) {
-        if (players[0] && players[0].team !== 1) {
-            room.setPlayerTeam(players[0].id, 1);
-            removePlayerFromAfkMapsAndSets(players[0].id);
+    // 1. Rule for first player in empty room
+    if (redPlayers.length === 0 && bluePlayers.length === 0) {
+        if (players.length > 0) {
+            const firstPlayer = players[0];
+            if (firstPlayer) {
+                room.setPlayerTeam(firstPlayer.id, 1);
+                removePlayerFromAfkMapsAndSets(firstPlayer.id);
+            }
         }
         return;
     }
 
     const teamSize = getTargetTeamSize();
-    const redTeam = players.filter(p => p.team === 1);
-    const blueTeam = players.filter(p => p.team === 2);
     const spectators = getQueueList();
 
     // 2. Ensure teams don't exceed the current target team size
-    if (redTeam.length > teamSize) {
-        redTeam.slice(teamSize).forEach(p => room.setPlayerTeam(p.id, 0));
+    if (redPlayers.length > teamSize) {
+        redPlayers.slice(teamSize).forEach(p => room.setPlayerTeam(p.id, 0));
     }
-    if (blueTeam.length > teamSize) {
-        blueTeam.slice(teamSize).forEach(p => room.setPlayerTeam(p.id, 0));
+    if (bluePlayers.length > teamSize) {
+        bluePlayers.slice(teamSize).forEach(p => room.setPlayerTeam(p.id, 0));
     }
 
     // 3. Re-fetch current counts
