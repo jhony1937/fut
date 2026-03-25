@@ -10,6 +10,7 @@ import {
 import { getQueueList } from "./spectatorQueue.js";
 import { movePlayerToTeam, applyPlayerCountLogic } from "./teammanagement.js";
 import { setPlayerAfk, isPlayerAfk, getAfkPlayerNames } from "./afkdetection.js";
+import { addBan, removeBan, getBanList, getPlayerByTag } from "./banlist.js";
 
 interface Command {
     name: string;
@@ -289,8 +290,74 @@ const commands: Command[] = [
                 room.kickPlayer(player.id, "", false); // message خاوية باش نقصو من default 
             }, 600);
         }
+    },
+    {
+        name: "setban",
+        description: "Ban a player (!setban @name reason)",
+        emoji: "🚫",
+        adminOnly: true,
+        response: async (player: PlayerObject, args: string[]) => {
+            if (args.length < 2) {
+                room.sendAnnouncement("⚠️ Usage: !setban @name reason", player.id, 0xFFA500, "bold");
+                return;
+            }
+
+            const targetTag = args[0]!;
+            const reason = args.slice(1).join(" ");
+            const target = getPlayerByTag(targetTag);
+
+            if (!target) {
+                room.sendAnnouncement("❌ Player not found.", player.id, 0xFF0000, "bold");
+                return;
+            }
+
+            await addBan(target, reason);
+            room.sendAnnouncement(`🚫 ${target.name} has been banned. Reason: ${reason}`, undefined, 0xFF0000, "bold");
+            room.kickPlayer(target.id, `Banned: ${reason}`, true);
+        }
+    },
+    {
+        name: "banlist",
+        description: "Show the list of banned players",
+        emoji: "📋",
+        adminOnly: true,
+        response: async (player: PlayerObject) => {
+            const bans = getBanList();
+            if (bans.length === 0) {
+                room.sendAnnouncement("📋 Ban list is empty.", player.id, 0x00FF00, "bold");
+                return;
+            }
+
+            room.sendAnnouncement("📋 Ban List:", player.id, 0xFFD700, "bold");
+            bans.forEach((b, index) => {
+                room.sendAnnouncement(`${index + 1}. ${b.name} - ${b.reason}`, player.id, 0xFFFFFF, "normal");
+            });
+        }
+    },
+    {
+        name: "unban",
+        description: "Unban a player (!unban name)",
+        emoji: "✅",
+        adminOnly: true,
+        response: async (player: PlayerObject, args: string[]) => {
+            if (args.length < 1) {
+                room.sendAnnouncement("⚠️ Usage: !unban name", player.id, 0xFFA500, "bold");
+                return;
+            }
+
+            const name = args.join(" ");
+            const success = await removeBan(name);
+
+            if (!success) {
+                room.sendAnnouncement("❌ Player not found in ban list.", player.id, 0xFF0000, "bold");
+                return;
+            }
+
+            room.sendAnnouncement(`✅ ${name} has been unbanned.`, undefined, 0x00FF00, "bold");
+        }
     }
  ];
+
 
 export function isCommand(message: string): boolean {
     return message.startsWith("!");
