@@ -147,7 +147,7 @@ HaxballJS.then(async (HBInit) => {
   await loadBanList();
 
   room = HBInit({
-    roomName: "🟨​Futsal|3v3|Ranked|Testing🟨​",
+    roomName: "🟧​​Futsal|3v3|Ranked|New Season🟧​​",
     maxPlayers: 20,
     public: false,
     noPlayer: true,
