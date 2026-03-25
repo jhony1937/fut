@@ -14,16 +14,27 @@ export function getTargetTeamSize(): number {
 
 /**
  * Automatically balances teams for 1v1, 2v2, or 3v3 matches.
- * Fills Red first, then Blue from the spectator queue.
+ * Rule: If only one player is in the room, they are moved to RED.
+ * Otherwise, fills Red first, then Blue from the spectator queue.
  */
 export function autoBalanceTeams(): void {
     const players = room.getPlayerList();
+    
+    // 1. Rule for single player in room
+    if (players.length === 1) {
+        if (players[0] && players[0].team !== 1) {
+            room.setPlayerTeam(players[0].id, 1);
+            removePlayerFromAfkMapsAndSets(players[0].id);
+        }
+        return;
+    }
+
     const teamSize = getTargetTeamSize();
     const redTeam = players.filter(p => p.team === 1);
     const blueTeam = players.filter(p => p.team === 2);
     const spectators = getQueueList();
 
-    // 1. Ensure teams don't exceed the current target team size
+    // 2. Ensure teams don't exceed the current target team size
     if (redTeam.length > teamSize) {
         redTeam.slice(teamSize).forEach(p => room.setPlayerTeam(p.id, 0));
     }
@@ -31,11 +42,11 @@ export function autoBalanceTeams(): void {
         blueTeam.slice(teamSize).forEach(p => room.setPlayerTeam(p.id, 0));
     }
 
-    // 2. Re-fetch current counts
+    // 3. Re-fetch current counts
     const currentRed = room.getPlayerList().filter(p => p.team === 1).length;
     const currentBlue = room.getPlayerList().filter(p => p.team === 2).length;
 
-    // 3. Fill teams from spectator queue
+    // 4. Fill teams from spectator queue
     let specIndex = 0;
 
     // Fill Red
