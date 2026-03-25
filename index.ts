@@ -162,7 +162,7 @@ HaxballJS.then(async (HBInit) => {
   room.setScoreLimit(scoreLimit);
   room.setTimeLimit(timeLimit);
   room.setTeamsLock(true);
-  room.setCustomStadium(customArdiaStadium);
+  room.setCustomStadium(bigStadium);
   currentStadiumName = "3v3";
   applyTeamColors(); // Set default colors initially
 
@@ -209,6 +209,8 @@ HaxballJS.then(async (HBInit) => {
     setAppropriateStadium();
   }
 
+  let isInternalTeamChange = false;
+
   room.onPlayerTeamChange = function (changedPlayer: PlayerObject, _byPlayer: PlayerObject): void {
      if (changedPlayer.team === 0) {
          addToQueue(changedPlayer.id);
@@ -217,8 +219,13 @@ HaxballJS.then(async (HBInit) => {
          // Set a 45s grace period for players joining Red or Blue team
          setGracePeriod(changedPlayer.id, 45000);
      }
-     setAppropriateStadium(); // Added stadium re-evaluation
-     applyPlayerCountLogic();
+
+     if (!isInternalTeamChange) {
+         isInternalTeamChange = true;
+         setAppropriateStadium(); 
+         applyPlayerCountLogic();
+         isInternalTeamChange = false;
+     }
   }
 
   function checkBallTouch(): void {
