@@ -9,6 +9,7 @@ import { checkAndHandleCommands, isCommand } from "./commands.js";
 import { playerNames, incrementGoals, incrementAssists, incrementWin, getRankObjectByName, playerStatsCache, addPlayerToIKnow } from "./stats.js";
 import { initDatabase } from "./database.js";
 import { isPicking, handleCaptainPick, handlePlayerLeavePick, setPickingState } from "./autopick.js";
+import { isBanned, loadBanList } from "./banlist.js";
 
 import { addToQueue, removeFromQueue } from "./spectatorQueue.js";
 
@@ -141,6 +142,10 @@ HaxballJS.then(async (HBInit) => {
       console.log(`[Sync] Dashboard update for ${updatedPlayer.name} applied to bot cache.`);
     }
   });
+  
+  // Load the ban list initially
+  await loadBanList();
+
   room = HBInit({
     roomName: "🟨​Futsal|3v3|Ranked|Testing🟨​",
     maxPlayers: 20,
@@ -172,6 +177,13 @@ HaxballJS.then(async (HBInit) => {
   };
 
   room.onPlayerJoin = function (player: PlayerObject): void {
+    // Check if player is banned
+    const ban = isBanned(player.auth);
+    if (ban) {
+        room.kickPlayer(player.id, `Banned: ${ban.reason}`, false);
+        return;
+    }
+
     // Store player name for leaderboard persistence
     playerNames.set(player.auth, player.name);
     // Initialize stats from database if not exists
