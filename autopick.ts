@@ -1,208 +1,68 @@
 import { room } from "./index.js";
-import { getQueueList, getFullQueueList } from "./spectatorQueue.js";
-import { movePlayerToTeam, applyPlayerCountLogic } from "./teammanagement.js";
-import { isPlayerAfk, isPickTimeoutActive, getRemainingPickTimeout } from "./afkdetection.js";
+import { getQueueList } from "./spectatorQueue.js";
+import { movePlayerToTeam } from "./teammanagement.js";
 
-// Selection state
-export let isPicking = false;
-let currentCaptainId: number | null = null;
-let picksRemaining = 0;
-let pickTimer: NodeJS.Timeout | null = null;
-const PICK_TIMEOUT_MS = 10000;
+const TEAM_SIZE = 3;
 
 /**
- * Sets the picking state
+ * Automatically balances teams for a 3v3 match.
+ * Fills Red first, then Blue from the spectator queue.
  */
-export function setPickingState(state: boolean): void {
-    isPicking = state;
-    if (!state) {
-        clearPickTimer();
-        currentCaptainId = null;
-        picksRemaining = 0;
+export function autoBalanceTeams(): void {
+    const players = room.getPlayerList();
+    const redTeam = players.filter(p => p.team === 1);
+    const blueTeam = players.filter(p => p.team === 2);
+    const spectators = getQueueList();
+
+    // 1. Ensure teams don't exceed 3 players
+    if (redTeam.length > TEAM_SIZE) {
+        redTeam.slice(TEAM_SIZE).forEach(p => room.setPlayerTeam(p.id, 0));
+    }
+    if (blueTeam.length > TEAM_SIZE) {
+        blueTeam.slice(TEAM_SIZE).forEach(p => room.setPlayerTeam(p.id, 0));
+    }
+
+    // 2. Re-fetch current counts
+    const currentRed = room.getPlayerList().filter(p => p.team === 1).length;
+    const currentBlue = room.getPlayerList().filter(p => p.team === 2).length;
+
+    // 3. Fill teams from spectator queue
+    let specIndex = 0;
+
+    // Fill Red
+    for (let i = currentRed; i < TEAM_SIZE && specIndex < spectators.length; i++) {
+        const target = spectators[specIndex++];
+        movePlayerToTeam(target.id, 1);
+    }
+
+    // Fill Blue
+    for (let i = currentBlue; i < TEAM_SIZE && specIndex < spectators.length; i++) {
+        const target = spectators[specIndex++];
+        movePlayerToTeam(target.id, 2);
     }
 }
 
 /**
- * Starts the picking phase
- * @param captainId The player ID of the captain (FIFO from specs)
- * @param totalPicks Number of players the captain needs to select
+ * Resets all players to spectators and then auto-assigns them for a fresh 3v3 match.
  */
-export function startPickingPhase(captainId: number, totalPicks: number): void {
-    const captain = room.getPlayer(captainId);
-    if (!captain) return;
-
-    setPickingState(true);
-    currentCaptainId = captainId;
-    picksRemaining = totalPicks;
-
-    // Move captain to Blue
-    movePlayerToTeam(captainId, 2);
-
-    room.sendAnnouncement(`📢 Captain: ${captain.name} - Enter the player's number to select - You have 10 seconds.`, captainId, 0x00FFFF, "bold");
+export function resetAndAutoAssign(): void {
+    const players = room.getPlayerList();
     
-    displaySpectators(captainId);
-    resetPickTimer();
+    // Move everyone to spec
+    players.forEach(p => room.setPlayerTeam(p.id, 0));
+
+    // Wait a tiny bit for the team change to register if needed (though setPlayerTeam is usually sync)
+    setTimeout(() => {
+        autoBalanceTeams();
+    }, 100);
 }
 
 /**
- * Displays the current spectator list with numbers
+ * Checks if a 3v3 match can start.
  */
-export function displaySpectators(targetPlayerId?: number): void {
-    const specs = getFullQueueList(); // Show ALL specs so they can see who is AFK
-    const target = targetPlayerId ?? currentCaptainId ?? undefined;
-
-    if (specs.length === 0) {
-        if (isPicking) {
-            room.sendAnnouncement("📢 No more spectators to pick.", target, 0xFFFF00, "bold");
-            finalizePicking();
-        }
-        return;
-    }
-
-    room.sendAnnouncement("📋 --- SPECTATORS LIST --- 📋", target, 0x00FFFF, "bold");
-    specs.forEach((spec, index) => {
-        const afkStatus = isPlayerAfk(spec.id) ? " [AFK 😴]" : "";
-        const timeout = isPickTimeoutActive(spec.id) ? ` [Wait ${getRemainingPickTimeout(spec.id)}s ⏳]` : "";
-        room.sendAnnouncement(`${index + 1} - ${spec.name}${afkStatus}${timeout}`, target, 0xFFFFFF, "normal");
-    });
+export function canMatchStart(): boolean {
+    const redCount = room.getPlayerList().filter(p => p.team === 1).length;
+    const blueCount = room.getPlayerList().filter(p => p.team === 2).length;
+    return redCount === TEAM_SIZE && blueCount === TEAM_SIZE;
 }
 
-/**
- * Handles picking logic in chat
- */
-export function handleCaptainPick(player: PlayerObject, message: string): boolean {
-    if (!isPicking || player.id !== currentCaptainId) return false;
-
-    const trimmedMsg = message.trim().toLowerCase();
-
-    // Handle "random" pick
-    if (trimmedMsg === "random") {
-        pickRandomPlayer();
-        return true;
-    }
-
-    // Handle number-based pick
-    const index = parseInt(trimmedMsg);
-    if (isNaN(index)) return false; // Not a number, maybe normal chat
-
-    // Use full list for indexing but check AFK and Timeout
-    const specs = getFullQueueList();
-    if (index <= 0 || index > specs.length) {
-        room.sendAnnouncement(`⚠️ Invalid number: No spectator found at ${index}.`, player.id, 0xFF0000, "normal");
-        return true;
-    }
-
-    const target = specs[index - 1]!;
-    
-    // Check if player is AFK
-    if (isPlayerAfk(target.id)) {
-        room.sendAnnouncement("⚠️ This player is AFK and cannot be picked", player.id, 0xFF0000, "bold");
-        return true;
-    }
-
-    // Check if player is in pick timeout (inactive/new)
-    if (isPickTimeoutActive(target.id)) {
-        const remaining = getRemainingPickTimeout(target.id);
-        room.sendAnnouncement(`⏳ ${target.name} is AFK or inactive, please wait ${remaining} seconds before picking`, player.id, 0xFF0000, "bold");
-        return true;
-    }
-
-    executePick(target);
-    return true; 
-}
-
-/**
- * Executes a pick and moves the player
- */
-function executePick(target: PlayerObject): void {
-    const captain = room.getPlayer(currentCaptainId!);
-    const captainName = captain ? captain.name : "Captain";
-
-    room.sendAnnouncement(`[${captainName}] Select: ${target.name}.`, currentCaptainId!, 0x00FF00, "bold");
-    movePlayerToTeam(target.id, 2); // Move to Blue
-
-    picksRemaining--;
-
-    if (picksRemaining > 0) {
-        displaySpectators(currentCaptainId!);
-        resetPickTimer();
-    } else {
-        finalizePicking();
-    }
-}
-
-/**
- * Picks a random player from the current spectators (skipping AFK)
- */
-function pickRandomPlayer(): void {
-    const availableSpecs = getQueueList(); // This already filters out AFK
-    if (availableSpecs.length === 0) {
-        finalizePicking();
-        return;
-    }
-
-    const randomIndex = Math.floor(Math.random() * availableSpecs.length);
-    const target = availableSpecs[randomIndex]!;
-    executePick(target);
-}
-
-/**
- * Finalizes the picking phase and starts the game if possible
- */
-function finalizePicking(): void {
-    const captainId = currentCaptainId;
-    setPickingState(false);
-    if (captainId) {
-        room.sendAnnouncement("✅ Picking phase complete!", captainId, 0x00FF00, "bold");
-    }
-    
-    // Auto start by checking logic
-    applyPlayerCountLogic();
-}
-
-/**
- * Resets the 10-second timer for the current pick
- */
-function resetPickTimer(): void {
-    clearPickTimer();
-    const captainId = currentCaptainId;
-    pickTimer = setTimeout(() => {
-        if (isPicking && captainId) {
-            room.sendAnnouncement("⏰ Time's up! Picking a random player...", captainId, 0xFF0000, "bold");
-            pickRandomPlayer();
-        }
-    }, PICK_TIMEOUT_MS);
-}
-
-/**
- * Clears the active pick timer
- */
-function clearPickTimer(): void {
-    if (pickTimer) {
-        clearTimeout(pickTimer);
-        pickTimer = null;
-    }
-}
-
-/**
- * Handles picking state when a player leaves
- */
-export function handlePlayerLeavePick(player: PlayerObject): void {
-    if (!isPicking) return;
-
-    // If the captain leaves, cancel picking or choose a new one?
-    // User didn't specify, but usually we cancel and maybe restart or random pick.
-    // Let's just random pick everything if captain leaves to avoid stuck state.
-    if (player.id === currentCaptainId) {
-        room.sendAnnouncement("⚠️ Captain left! Finishing picks randomly...", undefined, 0xFF0000, "bold");
-        while (isPicking && picksRemaining > 0) {
-            pickRandomPlayer();
-        }
-        return;
-    }
-
-    // Update list if a spectator left
-    if (player.team === 0) {
-        displaySpectators();
-    }
-}
