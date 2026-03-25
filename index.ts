@@ -395,11 +395,27 @@ HaxballJS.then(async (HBInit) => {
     matchShots.clear();
     possession = { red: 0, blue: 0, total: 0 };
     resetAllActivityTimestamps();
+    applyBallTweak();
   }
 
   room.onPositionsReset = function (): void {
     lastBallTouch = null;
     secondLastBallTouch = null;
+    applyBallTweak();
+  }
+
+  /**
+   * Reduces the ball radius by 1 unit and sets its color to 0xDEB60D.
+   */
+  function applyBallTweak(): void {
+    const ballProperties = room.getDiscProperties(0); // Disc 0 is usually the ball
+    if (ballProperties) {
+      room.setDiscProperties(0, {
+        ...ballProperties,
+        radius: ballProperties.radius - 1,
+        color: 0xDEB60D
+      });
+    }
   }
 
   function applyTeamColors(): void {
