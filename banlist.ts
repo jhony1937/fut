@@ -68,6 +68,8 @@ export async function removeBan(name: string): Promise<boolean> {
     if (index === -1) return false;
 
     const entry = banList[index];
+    if (!entry) return false;
+
     banList.splice(index, 1);
 
     try {
