@@ -37,31 +37,18 @@ export const badWordList: Set<string> = loadListFile("lists/badwords.txt");
 
 const tokenFile: string = process.env['HAXBALL_TOKEN'] || (fs.existsSync("token.txt") ? fs.readFileSync("token.txt", "utf8") : "");
 
-// Parse stadium files and store their data
-const smallStadiumData = JSON.parse(fs.readFileSync("stadiums/small.hbs", "utf8"));
-const mediumStadiumData = JSON.parse(fs.readFileSync("stadiums/medium.hbs", "utf8"));
-const bigStadiumData = JSON.parse(fs.readFileSync("stadiums/big.hbs", "utf8"));
-
-const smallStadium = fs.readFileSync("stadiums/small.hbs", "utf8");
-const mediumStadium = fs.readFileSync("stadiums/medium.hbs", "utf8");
-const bigStadium = fs.readFileSync("stadiums/big.hbs", "utf8");
-
-
-// Map stadium names to content for comparison and easy access
-const stadiums: { [key: string]: string } = {
-  "1v1": smallStadium,
-  "2v2": mediumStadium,
-  "3v3": bigStadium
-};
-
-const stadiumData: { [key: string]: any } = {
-    "1v1": smallStadiumData,
-    "2v2": mediumStadiumData,
-    "3v3": bigStadiumData
-};
-
-let currentStadiumName: string = "1v1";
+let currentStadiumName: string = "Big";
 let stadiumChangeTimeout: NodeJS.Timeout | null = null;
+let allowCustom: boolean = false; // Flag to enable/disable bot's automatic stadium management
+
+/**
+ * Helper to set a built-in stadium name if the bot's auto-management is disabled.
+ */
+function safeSetStadium(name: string): void {
+  if (!allowCustom) {
+    room.setDefaultStadium(name);
+  }
+}
 
 // Win streaks for each team
 let redStreak: number = 0;
@@ -162,8 +149,8 @@ HaxballJS.then(async (HBInit) => {
   room.setScoreLimit(scoreLimit);
   room.setTimeLimit(timeLimit);
   room.setTeamsLock(true);
-  room.setCustomStadium(bigStadium);
-  currentStadiumName = "3v3";
+  room.setDefaultStadium("Big");
+  currentStadiumName = "Big";
   applyTeamColors(); // Set default colors initially
 
   room.onRoomLink = function (url: string) {
@@ -255,10 +242,12 @@ HaxballJS.then(async (HBInit) => {
 
     // Check for a save
     const ball = room.getBallPosition();
-    const currentStadium = stadiumData[currentStadiumName];
-    if (!ball || !currentStadium) return;
+    if (!ball) return;
 
-    const goalLineX = currentStadium.width / 2;
+    // Hardcoded widths for default stadiums: Big=600, Medium=420, Small=420
+    const widths: { [key: string]: number } = { "Big": 600, "Medium": 420, "Small": 420 };
+    const goalLineX = (widths[currentStadiumName] || 600) / 2;
+
     if (Math.abs(ball.x) > goalLineX) {
         const teamPlayers = room.getPlayerList().filter(p => p.team !== player.team && p.team !== 0);
         for (const p of teamPlayers) {
@@ -385,6 +374,10 @@ HaxballJS.then(async (HBInit) => {
         }
       }
     }
+  }
+
+  room.onGameStop = function (): void {
+    setAppropriateStadium();
   }
 
   room.onGameStart = function (): void {
@@ -551,11 +544,11 @@ export function restartGameWithCallback(callback: () => void): void {
 }
 
 function setAppropriateStadium() {
-  // Recalculate the target stadium based on players currently in teams
-  const playersInTeams = room.getPlayerList().filter(p => p.team !== 0);
-  const teamPlayersCount = playersInTeams.length;
+  if (allowCustom) return; // Skip automatic stadium management if custom mode is enabled
   
-  let targetStadiumName = teamPlayersCount >= 6 ? "3v3" : (teamPlayersCount >= 4 ? "2v2" : "1v1");
+  // Recalculate the target stadium based on total players in the room
+  const totalPlayers = room.getPlayerList().length;
+  let targetStadiumName = totalPlayers >= 6 ? "Big" : (totalPlayers >= 4 ? "Medium" : "Small");
 
   // If the target stadium is already active, just clear any pending changes and return
   if (targetStadiumName === currentStadiumName) {
@@ -575,13 +568,10 @@ function setAppropriateStadium() {
   // Set a 1-second delay to stabilize the count and avoid spam
   stadiumChangeTimeout = setTimeout(() => {
     // Re-check target one last time inside timeout
-    const currentPlayersInTeams = room.getPlayerList().filter(p => p.team !== 0).length;
-    let finalTargetName = currentPlayersInTeams >= 6 ? "3v3" : (currentPlayersInTeams >= 4 ? "2v2" : "1v1");
-    let finalMapDisplayName = finalTargetName === "3v3" ? "Big (3v3)" : (finalTargetName === "2v2" ? "Medium (2v2)" : "Small (1v1)");
+    const currentTotalPlayers = room.getPlayerList().length;
+    let finalTargetName = currentTotalPlayers >= 6 ? "Big" : (currentTotalPlayers >= 4 ? "Medium" : "Small");
 
     if (finalTargetName !== currentStadiumName) {
-      const stadiumContent = stadiums[finalTargetName];
-      if (stadiumContent) {
         const scores = room.getScores();
         const isGameRunning = scores !== null;
 
@@ -589,13 +579,12 @@ function setAppropriateStadium() {
           room.stopGame();
         }
 
-        room.setCustomStadium(stadiumContent);
+        room.setDefaultStadium(finalTargetName);
         currentStadiumName = finalTargetName;
-        room.sendAnnouncement(`🏟️ Map changed to: ${finalMapDisplayName}`, undefined, 0x00FF00, "bold", 0);
+        room.sendAnnouncement(`🏟️ Map changed to: ${finalTargetName}`, undefined, 0x00FF00, "bold", 0);
         
         // After stadium change, we always ensure teams are balanced and try to start
         applyPlayerCountLogic();
-      }
     }
     stadiumChangeTimeout = null;
   }, 1000);
