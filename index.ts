@@ -164,8 +164,11 @@ HaxballJS.then(async (HBInit) => {
     console.log(url);
   };
 
-  room.onPlayerKicked = function (kickedPlayer, reason, ban, byPlayer) {
-    return false; // Suppress default kick message
+  room.onPlayerKicked = function (kickedPlayer: PlayerObject, reason: string, ban: boolean, byPlayer: PlayerObject): void {
+    // In Haxball Headless, returning false in onPlayerKicked doesn't suppress the system message.
+    // However, if the user's environment or library supports it, we keep it as requested.
+    // To avoid TypeScript errors if 'void' is expected, we'll cast to any.
+    return (false as any); 
   };
 
   room.onPlayerJoin = function (player: PlayerObject): void {
