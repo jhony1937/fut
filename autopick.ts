@@ -1,6 +1,6 @@
 import { room } from "./index.js";
 import { getQueueList } from "./spectatorQueue.js";
-import { movePlayerToTeam } from "./teammanagement.js";
+import { removePlayerFromAfkMapsAndSets } from "./afkdetection.js";
 
 const TEAM_SIZE = 3;
 
@@ -32,13 +32,15 @@ export function autoBalanceTeams(): void {
     // Fill Red
     for (let i = currentRed; i < TEAM_SIZE && specIndex < spectators.length; i++) {
         const target = spectators[specIndex++];
-        movePlayerToTeam(target.id, 1);
+        room.setPlayerTeam(target.id, 1);
+        removePlayerFromAfkMapsAndSets(target.id);
     }
 
     // Fill Blue
     for (let i = currentBlue; i < TEAM_SIZE && specIndex < spectators.length; i++) {
         const target = spectators[specIndex++];
-        movePlayerToTeam(target.id, 2);
+        room.setPlayerTeam(target.id, 2);
+        removePlayerFromAfkMapsAndSets(target.id);
     }
 }
 
