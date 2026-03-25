@@ -543,9 +543,11 @@ export function restartGameWithCallback(callback: () => void): void {
 }
 
 function setAppropriateStadium() {
-  // Requirement 1: Always 3v3 Big Map
-  const targetStadiumName = "3v3";
-  const finalMapDisplayName = "Big (3v3)";
+  // Recalculate the target stadium based on players currently in teams
+  const playersInTeams = room.getPlayerList().filter(p => p.team !== 0);
+  const teamPlayersCount = playersInTeams.length;
+  
+  let targetStadiumName = teamPlayersCount >= 6 ? "3v3" : (teamPlayersCount >= 4 ? "2v2" : "1v1");
 
   // If the target stadium is already active, just clear any pending changes and return
   if (targetStadiumName === currentStadiumName) {
@@ -557,27 +559,35 @@ function setAppropriateStadium() {
   }
 
   // If a change is already pending for this target, don't do anything
+  // But if a change is pending for a DIFFERENT target, clear it and set the new one
   if (stadiumChangeTimeout) {
-    return;
+    clearTimeout(stadiumChangeTimeout);
   }
 
-  // Set a 1-second delay to stabilize and avoid spam
+  // Set a 1-second delay to stabilize the count and avoid spam
   stadiumChangeTimeout = setTimeout(() => {
-    const stadiumContent = stadiums[targetStadiumName];
-    if (stadiumContent) {
-      const scores = room.getScores();
-      const isGameRunning = scores !== null;
+    // Re-check target one last time inside timeout
+    const currentPlayersInTeams = room.getPlayerList().filter(p => p.team !== 0).length;
+    let finalTargetName = currentPlayersInTeams >= 6 ? "3v3" : (currentPlayersInTeams >= 4 ? "2v2" : "1v1");
+    let finalMapDisplayName = finalTargetName === "3v3" ? "Big (3v3)" : (finalTargetName === "2v2" ? "Medium (2v2)" : "Small (1v1)");
 
-      if (isGameRunning) {
-        room.stopGame();
+    if (finalTargetName !== currentStadiumName) {
+      const stadiumContent = stadiums[finalTargetName];
+      if (stadiumContent) {
+        const scores = room.getScores();
+        const isGameRunning = scores !== null;
+
+        if (isGameRunning) {
+          room.stopGame();
+        }
+
+        room.setCustomStadium(stadiumContent);
+        currentStadiumName = finalTargetName;
+        room.sendAnnouncement(`🏟️ Map changed to: ${finalMapDisplayName}`, undefined, 0x00FF00, "bold", 0);
+        
+        // After stadium change, we always ensure teams are balanced and try to start
+        applyPlayerCountLogic();
       }
-
-      room.setCustomStadium(stadiumContent);
-      currentStadiumName = targetStadiumName;
-      room.sendAnnouncement(`🏟️ Map changed to: ${finalMapDisplayName}`, undefined, 0x00FF00, "bold", 0);
-      
-      // After stadium change, we always ensure teams are balanced and try to start
-      applyPlayerCountLogic();
     }
     stadiumChangeTimeout = null;
   }, 1000);
