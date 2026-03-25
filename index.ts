@@ -35,9 +35,16 @@ export const immuneAuthList: Set<string> = loadListFile("lists/immunelist.txt");
 export const badWordList: Set<string> = loadListFile("lists/badwords.txt");
 
 const tokenFile: string = process.env['HAXBALL_TOKEN'] || (fs.existsSync("token.txt") ? fs.readFileSync("token.txt", "utf8") : "");
-const smallStadium: string = fs.readFileSync("stadiums/small.hbs", "utf8");
-const mediumStadium: string = fs.readFileSync("stadiums/medium.hbs", "utf8");
-const bigStadium: string = fs.readFileSync("stadiums/big.hbs", "utf8");
+
+// Parse stadium files and store their data
+const smallStadiumData = JSON.parse(fs.readFileSync("stadiums/small.hbs", "utf8"));
+const mediumStadiumData = JSON.parse(fs.readFileSync("stadiums/medium.hbs", "utf8"));
+const bigStadiumData = JSON.parse(fs.readFileSync("stadiums/big.hbs", "utf8"));
+
+const smallStadium = fs.readFileSync("stadiums/small.hbs", "utf8");
+const mediumStadium = fs.readFileSync("stadiums/medium.hbs", "utf8");
+const bigStadium = fs.readFileSync("stadiums/big.hbs", "utf8");
+
 
 // Map stadium names to content for comparison and easy access
 const stadiums: { [key: string]: string } = {
@@ -46,12 +53,24 @@ const stadiums: { [key: string]: string } = {
   "3v3": bigStadium
 };
 
+const stadiumData: { [key: string]: any } = {
+    "1v1": smallStadiumData,
+    "2v2": mediumStadiumData,
+    "3v3": bigStadiumData
+};
+
 let currentStadiumName: string = "1v1";
 let stadiumChangeTimeout: NodeJS.Timeout | null = null;
 
 // Win streaks for each team
 let redStreak: number = 0;
 let blueStreak: number = 0;
+
+// Match-specific stats
+let matchGoals = new Map<string, number>();
+let matchSaves = new Map<string, number>();
+let matchShots = new Map<string, number>();
+let possession = { red: 0, blue: 0, total: 0 };
 
 /**
  * Checks if a stadium change is currently scheduled.
@@ -201,51 +220,110 @@ HaxballJS.then(async (HBInit) => {
     }
   }
 
+  room.onPlayerBallKick = function (player: PlayerObject): void {
+    const playerName = player.name;
+    matchShots.set(playerName, (matchShots.get(playerName) || 0) + 1);
+
+    // Check for a save
+    const ball = room.getBallPosition();
+    const currentStadium = stadiumData[currentStadiumName];
+    if (!ball || !currentStadium) return;
+
+    const goalLineX = currentStadium.width / 2;
+    if (Math.abs(ball.x) > goalLineX) {
+        const teamPlayers = room.getPlayerList().filter(p => p.team !== player.team && p.team !== 0);
+        for (const p of teamPlayers) {
+            if (p.position && Math.abs(p.position.x) > goalLineX) {
+                const distance = Math.sqrt(Math.pow(p.position.x - ball.x, 2) + Math.pow(p.position.y - ball.y, 2));
+                if (distance < 28) { // 15 (player) + 10 (ball) + 3 (buffer)
+                    matchSaves.set(p.name, (matchSaves.get(p.name) || 0) + 1);
+                    break;
+                }
+            }
+        }
+    }
+  }
+
   room.onTeamGoal = function (teamId: number): void {
     handleGoal(teamId);
   }
 
   async function handleGoal(teamId: number) {
-    // Use the tracked peak/last valid speed from our calculation logic
     const speedFormatted = Math.round(lastValidSpeedKmh);
-
     let scorerName = "Unknown";
     let assistantName = "None";
 
-    // Update goal and assist stats
     if (lastBallTouch && lastBallTouch.team === teamId) {
       scorerName = lastBallTouch.name;
-      // The scorer receives +1 goal
       await incrementGoals(scorerName);
-      
-      // Automatically add the scoring player to the “iknow” scorer system using their player ID
+      matchGoals.set(scorerName, (matchGoals.get(scorerName) || 0) + 1); // Track match goals
       addPlayerToIKnow(lastBallTouch.id);
       
-      // The player who touched the ball before the scorer receives +1 assist
       if (secondLastBallTouch && secondLastBallTouch.team === teamId && secondLastBallTouch.id !== lastBallTouch.id) {
         assistantName = secondLastBallTouch.name;
         await incrementAssists(assistantName);
       }
     }
 
-    // Announcement
     room.sendAnnouncement("⚽ Goal!", undefined, 0xFFFF00, "bold", 0);
     room.sendAnnouncement(`👤 Scorer: ${scorerName}`, undefined, 0xFFFF00, "bold", 0);
     room.sendAnnouncement(`👟 Assist: ${assistantName}`, undefined, 0xFFFF00, "bold", 0);
     room.sendAnnouncement(`🚀 Speed: ${speedFormatted} km/h`, undefined, 0xFFFF00, "bold", 0);
 
-    // Reset speed and touches after goal
     lastBallTouch = null;
     secondLastBallTouch = null;
     lastValidSpeedKmh = 0;
   }
 
-  //triggers *only* when a team is winning and the timer runs out, 
-  //because the room is also listening for the onTeamGoal event, which triggers first
+  function displayMatchSummary(scores: ScoresObject): void {
+    const winningTeamId = scores.red > scores.blue ? 1 : 2;
+    const winningTeamName = winningTeamId === 1 ? "RED" : "BLUE";
+    const finalScore = `${scores.red} - ${scores.blue}`;
+    const summaryColor = 0x5CE1E6;
+
+    // 1. Possession
+    const redPossession = possession.total > 0 ? Math.round((possession.red / possession.total) * 100) : 0;
+    const bluePossession = possession.total > 0 ? 100 - redPossession : 0;
+    const possessionString = `🔴 ${redPossession}% - ${bluePossession}% 🔵`;
+
+    // 2. Clean Sheet
+    const cleanSheet = (winningTeamId === 1 && scores.blue === 0) || (winningTeamId === 2 && scores.red === 0)
+      ? "Clean Sheet"
+      : "No CS";
+
+    // 3. Best Player (Top Scorer)
+    let topScorerName = "N/A";
+    let maxGoals = 0;
+    for (const [name, goals] of matchGoals.entries()) {
+      if (goals > maxGoals) {
+        maxGoals = goals;
+        topScorerName = name;
+      }
+    }
+    const bestPlayerString = maxGoals > 0 ? `${topScorerName} - ${maxGoals} goals` : "N/A";
+
+    // 4. Best Goalkeeper
+    let bestGkName = "N/A";
+    let maxSaves = 0;
+    for (const [name, saves] of matchSaves.entries()) {
+      if (saves > maxSaves) {
+        maxSaves = saves;
+        bestGkName = name;
+      }
+    }
+    const bestGkString = maxSaves > 0 ? `${bestGkName} - ${maxSaves} saves` : "N/A";
+
+    // Announce Summary
+    room.sendAnnouncement(`█✨█ ${winningTeamName} won ${finalScore} !`, undefined, summaryColor, "bold", 0);
+    room.sendAnnouncement(`█📊█ Possession: ${possessionString}`, undefined, summaryColor, "bold", 0);
+    room.sendAnnouncement(`█📊█ CS: 🥅 ${cleanSheet}`, undefined, summaryColor, "bold", 0);
+    room.sendAnnouncement(`🏆 Best Player: ${bestPlayerString}`, undefined, summaryColor, "bold", 0);
+    room.sendAnnouncement(`🧤 Best GK: ${bestGkString}`, undefined, summaryColor, "bold", 0);
+  }
+
   room.onTeamVictory = function (scores: ScoresObject): void {
     const winningTeam = scores.red > scores.blue ? 1 : 2;
     
-    // Manage streaks
     if (winningTeam === 1) {
       redStreak++;
       blueStreak = 0;
@@ -260,8 +338,8 @@ HaxballJS.then(async (HBInit) => {
       }
     }
     
-    applyTeamColors(); // Update colors based on streaks
-
+    applyTeamColors();
+    displayMatchSummary(scores);
     handleMatchEnd(winningTeam);
     restartGameWithCallback(() => handleTeamWin(winningTeam));
   }
@@ -269,9 +347,8 @@ HaxballJS.then(async (HBInit) => {
   async function handleMatchEnd(winningTeam: number) {
     const players = room.getPlayerList();
     for (const p of players) {
-      if (p.team !== 0) { // If player was in a team (Red or Blue)
+      if (p.team !== 0) {
         if (p.team === winningTeam) {
-          // Increase wins for players in the winning team.
           const { rankedUp, newRank } = await incrementWin(p.name);
           if (rankedUp) {
             room.sendAnnouncement(`🔥 ${p.name} ranked up to ${newRank}`, undefined, 0xFFA500, "bold", 0);
@@ -284,6 +361,10 @@ HaxballJS.then(async (HBInit) => {
   room.onGameStart = function (): void {
     lastBallTouch = null;
     secondLastBallTouch = null;
+    matchGoals.clear();
+    matchSaves.clear();
+    matchShots.clear();
+    possession = { red: 0, blue: 0, total: 0 };
     setPickingState(false);
     resetAllActivityTimestamps();
   }
@@ -294,18 +375,16 @@ HaxballJS.then(async (HBInit) => {
   }
 
   function applyTeamColors(): void {
-    // Red Team (ID 1)
     if (redStreak >= 5) {
       room.setTeamColors(1, 45, 0xFFFFFF, [0xFFD700, 0xDAA520, 0xB8860B]);
     } else {
-      room.setTeamColors(1, 0, 0xB8860B, [0xC70404]); // Dark Gold main + Red secondary
+      room.setTeamColors(1, 0, 0xB8860B, [0xC70404]);
     }
 
-    // Blue Team (ID 2)
     if (blueStreak >= 5) {
       room.setTeamColors(2, 45, 0xFFFFFF, [0xFFD700, 0xDAA520, 0xB8860B]);
     } else {
-      room.setTeamColors(2, 0, 0xB8860B, [0x0B0761]); // Dark Gold main + Blue secondary
+      room.setTeamColors(2, 0, 0xB8860B, [0x0B0761]);
     }
   }
 
@@ -318,6 +397,33 @@ HaxballJS.then(async (HBInit) => {
     handleImmunePlayerFreezing();
     checkBallTouch();
     updateBallSpeedTracking();
+
+    // Possession Tracking
+    const ball = room.getBallPosition();
+    if (ball) {
+        const players = room.getPlayerList().filter(p => p.team !== 0);
+        let closestPlayer: PlayerObject | null = null;
+        let minDistance = Infinity;
+
+        for (const player of players) {
+            if (player.position) {
+                const distance = Math.sqrt(Math.pow(player.position.x - ball.x, 2) + Math.pow(player.position.y - ball.y, 2));
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestPlayer = player;
+                }
+            }
+        }
+
+        if (closestPlayer) {
+            if (closestPlayer.team === 1) {
+                possession.red++;
+            } else if (closestPlayer.team === 2) {
+                possession.blue++;
+            }
+        }
+        possession.total++;
+    }
   }
 
   room.onPlayerChat = function (player: PlayerObject, message: string): boolean {
