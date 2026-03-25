@@ -1,8 +1,6 @@
 import { removePlayerFromAfkMapsAndSets, setPickTimeout } from "./afkdetection.js";
 import { room, isStadiumChangePending } from "./index.js";
-import { autoBalanceTeams, resetAndAutoAssign, canMatchStart } from "./autopick.js";
-
-const TEAM_SIZE_LIMIT = 3;
+import { autoBalanceTeams, resetAndAutoAssign, canMatchStart, getTargetTeamSize } from "./autopick.js";
 
 /**
  * Moves a player to a specific team (1 for Red, 2 for Blue).
@@ -22,17 +20,18 @@ export function movePlayerToTeam(playerId: number, teamId: number) {
 export function autoAssignToTeam(playerId: number): boolean {
     if (isStadiumChangePending()) return false;
     
+    const teamSizeLimit = getTargetTeamSize();
     const playerList = room.getPlayerList();
     const redCount = playerList.filter(p => p.team === 1).length;
     const blueCount = playerList.filter(p => p.team === 2).length;
 
-    // Balance teams (up to 3x3)
-    if (redCount < TEAM_SIZE_LIMIT || blueCount < TEAM_SIZE_LIMIT) {
-        if (redCount <= blueCount && redCount < TEAM_SIZE_LIMIT) {
+    // Balance teams (up to current limit)
+    if (redCount < teamSizeLimit || blueCount < teamSizeLimit) {
+        if (redCount <= blueCount && redCount < teamSizeLimit) {
             movePlayerToTeam(playerId, 1);
-        } else if (blueCount < redCount && blueCount < TEAM_SIZE_LIMIT) {
+        } else if (blueCount < redCount && blueCount < teamSizeLimit) {
             movePlayerToTeam(playerId, 2);
-        } else if (blueCount < TEAM_SIZE_LIMIT) {
+        } else if (blueCount < teamSizeLimit) {
             movePlayerToTeam(playerId, 2);
         }
         return true;
@@ -41,10 +40,10 @@ export function autoAssignToTeam(playerId: number): boolean {
 }
 
 /**
- * Enforces 3v3 rules:
+ * Enforces match rules:
  * - Fills teams from spec if underfilled.
- * - Moves extra players to spec if team > 3.
- * - Starts game only if exactly 3v3.
+ * - Moves extra players to spec if team > limit.
+ * - Starts game only if teams are full and balanced.
  */
 export function applyPlayerCountLogic(): void {
     if (isStadiumChangePending()) return;
@@ -52,17 +51,11 @@ export function applyPlayerCountLogic(): void {
     // Auto balance teams first
     autoBalanceTeams();
 
-    // Auto Start if game not running and we have exactly 3v3
+    // Auto Start if game not running and we have balanced teams
     const scores = room.getScores();
     if (scores === null) {
         if (canMatchStart()) {
             room.startGame();
-        } else {
-            const redCount = room.getPlayerList().filter(p => p.team === 1).length;
-            const blueCount = room.getPlayerList().filter(p => p.team === 2).length;
-            if (redCount < 3 || blueCount < 3) {
-                // room.sendAnnouncement("⌛ Waiting for more players to reach 3v3...", undefined, 0xFFFF00, "normal");
-            }
         }
     }
 }
