@@ -8,7 +8,7 @@ import { checkAndHandleBadWords, checkAndHandleSpam, styleMessage } from "./mode
 import { checkAndHandleCommands, isCommand } from "./commands.js";
 import { playerNames, incrementGoals, incrementAssists, incrementWin, getRankObjectByName, playerStatsCache, addPlayerToIKnow } from "./stats.js";
 import { initDatabase } from "./database.js";
-import { isPicking, handleCaptainPick, handlePlayerLeavePick, setPickingState } from "./autopick.js";
+import { canMatchStart } from "./autopick.js";
 import { isBanned, loadBanList } from "./banlist.js";
 
 import { addToQueue, removeFromQueue } from "./spectatorQueue.js";
@@ -147,7 +147,7 @@ HaxballJS.then(async (HBInit) => {
   await loadBanList();
 
   room = HBInit({
-    roomName: "🟧​​Futsal|3v3|Ranked|New Season🟧​​",
+    roomName: "🟨​Futsal|3v3|Ranked|Testing🟨​",
     maxPlayers: 20,
     public: false,
     noPlayer: true,
@@ -202,7 +202,6 @@ HaxballJS.then(async (HBInit) => {
 
   room.onPlayerLeave = function (player: PlayerObject): void {
     handlePlayerLeaving(player);
-    handlePlayerLeavePick(player);
     removeFromQueue(player.id);
     
     // Evaluate stadium on leave
@@ -387,13 +386,28 @@ HaxballJS.then(async (HBInit) => {
     matchSaves.clear();
     matchShots.clear();
     possession = { red: 0, blue: 0, total: 0 };
-    setPickingState(false);
     resetAllActivityTimestamps();
+    applyBallTweak();
   }
 
   room.onPositionsReset = function (): void {
     lastBallTouch = null;
     secondLastBallTouch = null;
+    applyBallTweak();
+  }
+
+  /**
+   * Reduces the ball radius by 1 unit while keeping velocity and acceleration.
+   */
+  function applyBallTweak(): void {
+    const ballProperties = room.getDiscProperties(0); // Disc 0 is usually the ball
+    if (ballProperties) {
+      room.setDiscProperties(0, {
+        radius: ballProperties.radius - 1,
+        // velocity and acceleration are maintained by not overriding them or explicitly setting them
+        // In Haxball Headless API, setDiscProperties only updates provided fields.
+      });
+    }
   }
 
   function applyTeamColors(): void {
@@ -492,12 +506,6 @@ HaxballJS.then(async (HBInit) => {
       return false;
     }
 
-    // Auto-pick system: if pick is in progress
-    if (isPicking) {
-      const pickHandled = handleCaptainPick(player, message);
-      if (pickHandled) return false; // Suppress pick from chat
-    }
-
     // Apply styled text and emojis
     const styledMessage = styleMessage(message);
 
@@ -525,10 +533,11 @@ export function restartGameWithCallback(callback: () => void): void {
   // If NO stadium change is pending, we can start the game here
   // We wait a tiny bit to see if setAppropriateStadium set a timeout
   setTimeout(() => {
-    if (!stadiumChangeTimeout && !isPicking) {
-      room.startGame();
-      const playerList: PlayerObject[] = room.getPlayerList();
-      if (playerList.length !== 1) pauseUnpauseGame();
+    if (!stadiumChangeTimeout) {
+      if (canMatchStart()) {
+        room.startGame();
+        pauseUnpauseGame();
+      }
     }
   }, 100);
 }
