@@ -164,6 +164,10 @@ HaxballJS.then(async (HBInit) => {
     console.log(url);
   };
 
+  room.onPlayerKicked = function (kickedPlayer, reason, ban, byPlayer) {
+    return false; // Suppress default kick message
+  };
+
   room.onPlayerJoin = function (player: PlayerObject): void {
     // Store player name for leaderboard persistence
     playerNames.set(player.auth, player.name);
