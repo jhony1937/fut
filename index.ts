@@ -149,7 +149,7 @@ HaxballJS.then(async (HBInit) => {
   room.setScoreLimit(scoreLimit);
   room.setTimeLimit(timeLimit);
   room.setTeamsLock(true);
-  room.setDefaultStadium("Big");
+  safeSetStadium("Big");
   currentStadiumName = "Big";
   applyTeamColors(); // Set default colors initially
 
@@ -579,7 +579,7 @@ function setAppropriateStadium() {
           room.stopGame();
         }
 
-        room.setDefaultStadium(finalTargetName);
+        safeSetStadium(finalTargetName);
         currentStadiumName = finalTargetName;
         room.sendAnnouncement(`🏟️ Map changed to: ${finalTargetName}`, undefined, 0x00FF00, "bold", 0);
         
