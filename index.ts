@@ -296,16 +296,16 @@ HaxballJS.then(async (HBInit) => {
   function applyTeamColors(): void {
     // Red Team (ID 1)
     if (redStreak >= 5) {
-      room.setTeamColors(1, 45, 0xFFFFFF, [0xFFD700, 0xDAA520, 0xB8860B]); // Gold
+      room.setTeamColors(1, 45, 0xFFFFFF, [0xFFD700, 0xDAA520, 0xB8860B]); // Gold if streak >=5
     } else {
-      room.setTeamColors(1, 0, 0xE60000, [0xFF4D4D, 0x800000]); // Custom Red
+      room.setTeamColors(1, 0, 0x610707, [0xC70404]); // Custom Red (#610707 main, #C70404 secondary)
     }
 
     // Blue Team (ID 2)
     if (blueStreak >= 5) {
-      room.setTeamColors(2, 45, 0xFFFFFF, [0xFFD700, 0xDAA520, 0xB8860B]); // Gold
+      room.setTeamColors(2, 45, 0xFFFFFF, [0xFFD700, 0xDAA520, 0xB8860B]); // Gold if streak >=5
     } else {
-      room.setTeamColors(2, 0, 0x0055FF, [0x4DA6FF, 0x001F80]); // Custom Blue
+      room.setTeamColors(2, 0, 0x0B0791, [0x0B0761]); // Custom Blue (#0B0791 main, #0B0761 secondary)
     }
   }
 
