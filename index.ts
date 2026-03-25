@@ -164,7 +164,7 @@ HaxballJS.then(async (HBInit) => {
     console.log(url);
   };
 
-  room.onPlayerKicked = function (kickedPlayer: PlayerObject, reason: string, ban: boolean, byPlayer: PlayerObject): void {
+  room.onPlayerKicked = function (_kickedPlayer: PlayerObject, _reason: string, _ban: boolean, _byPlayer: PlayerObject): void {
     // In Haxball Headless, returning false in onPlayerKicked doesn't suppress the system message.
     // However, if the user's environment or library supports it, we keep it as requested.
     // To avoid TypeScript errors if 'void' is expected, we'll cast to any.
