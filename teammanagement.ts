@@ -77,7 +77,7 @@ export function movePlayerToSpec(playerId: number) {
  * Handles team win logic: 
  * - Requirement 3: All players reset to spec and then auto-assigned to maintain 3v3 balance.
  */
-export function handleTeamWin(winningTeamId: number) {
+export function handleTeamWin(_winningTeamId: number) {
     room.sendAnnouncement("🏆 Match ended! Resetting teams for the next 3v3 match...", undefined, 0x00FF00, "bold");
     resetAndAutoAssign();
 }
