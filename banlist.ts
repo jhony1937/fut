@@ -47,12 +47,18 @@ export async function addBan(player: PlayerObject, reason: string): Promise<void
         date: new Date().toISOString()
     };
 
-    banList.push(entry);
+    // Prevent duplicate entries in local cache
+    const existingIndex = banList.findIndex(b => b.name.toLowerCase() === player.name.toLowerCase());
+    if (existingIndex !== -1) {
+        banList[existingIndex] = entry;
+    } else {
+        banList.push(entry);
+    }
 
     try {
         const { error } = await supabase
             .from('bans')
-            .insert([entry]);
+            .upsert([entry], { onConflict: 'name' }); // Use name as conflict target if unique constraint exists
 
         if (error) throw error;
     } catch (err) {
