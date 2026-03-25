@@ -176,9 +176,12 @@ HaxballJS.then(async (HBInit) => {
     return (false as any); 
   };
 
-  room.onPlayerJoin = function (player: PlayerObject): void {
+  room.onPlayerJoin = async function (player: PlayerObject): Promise<void> {
+    // Reload ban list to ensure it's up to date
+    await loadBanList();
+
     // Check if player is banned
-    const ban = isBanned(player.auth);
+    const ban = isBanned(player.name);
     if (ban) {
         room.kickPlayer(player.id, `Banned: ${ban.reason}`, false);
         return;
