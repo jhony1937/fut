@@ -104,13 +104,13 @@ const commands: Command[] = [
         adminOnly: false,
         response: async (player: PlayerObject) => {
             room.sendAnnouncement("💎 SERVER RULES 💎", player.id, 0xFFFF00, "bold");
-            room.sendAnnouncement("1_ 🚫 No Spamming: Do not flood or repeat messages in chat.", player.id, 0xFFFFFF, "normal");
-            room.sendAnnouncement("2_ 🤝 Respect Everyone: Respect all players. No toxic behavior.", player.id, 0xFFFFFF, "normal");
-            room.sendAnnouncement("3_ 🚷 No Insults: Insults, racism, or offensive language are not allowed.", player.id, 0xFFFFFF, "normal");
-            room.sendAnnouncement("4_ ⚽ Fair Play Only: No cheating, exploiting, or unfair advantages.", player.id, 0xFFFFFF, "normal");
-            room.sendAnnouncement("5_ 🔄 No AFK Abuse: Do not stay AFK just to avoid being kicked.", player.id, 0xFFFFFF, "normal");
-            room.sendAnnouncement("6_ 📢 Follow Admins: Always listen to admins and follow their decisions.", player.id, 0xFFFFFF, "normal");
-            room.sendAnnouncement("7_ 🚨 No Toxic Behavior: Toxicity will result in warnings or bans.", player.id, 0xFFFFFF, "normal");
+            room.sendAnnouncement("1_ 🚫 No Spamming: Do not flood or repeat messages in chat.", player.id, 0xFFFFFF, "bold");
+            room.sendAnnouncement("2_ 🤝 Respect Everyone: Respect all players. No toxic behavior.", player.id, 0xFFFFFF, "bold");
+            room.sendAnnouncement("3_ 🚷 No Insults: Insults, racism, or offensive language are not allowed.", player.id, 0xFFFFFF, "bold");
+            room.sendAnnouncement("4_ ⚽ Fair Play Only: No cheating, exploiting, or unfair advantages.", player.id, 0xFFFFFF, "bold");
+            room.sendAnnouncement("5_ 🔄 No AFK Abuse: Do not stay AFK just to avoid being kicked.", player.id, 0xFFFFFF, "bold");
+            room.sendAnnouncement("6_ 📢 Follow Admins: Always listen to admins and follow their decisions.", player.id, 0xFFFFFF, "bold");
+            room.sendAnnouncement("7_ 🚨 No Toxic Behavior: Toxicity will result in warnings or bans.", player.id, 0xFFFFFF, "bold");
             room.sendAnnouncement("💎 ENJOY & HAVE FUN 💎", player.id, 0x00FF00, "bold");
         }
     },
