@@ -162,7 +162,7 @@ HaxballJS.then(async (HBInit) => {
   room.setScoreLimit(scoreLimit);
   room.setTimeLimit(timeLimit);
   room.setTeamsLock(true);
-  room.setCustomStadium(bigStadium);
+  room.setCustomStadium(customArdiaStadium);
   currentStadiumName = "3v3";
   applyTeamColors(); // Set default colors initially
 
