@@ -3,7 +3,7 @@ import * as fs from "fs";
 import { handlePlayerActivity, checkAndHandleInactivePlayers, resetAllActivityTimestamps, setGracePeriod, handleImmunePlayerFreezing } from "./afkdetection.js";
 import { handlePlayerJoining } from "./playerjoining.js";
 import { handlePlayerLeaving } from "./playerleaving.js";
-import { handleTeamWin, applyPlayerCountLogic } from "./teammanagement.js";
+import { handleTeamWin, applyPlayerCountLogic, tryStartGame } from "./teammanagement.js";
 import { checkAndHandleBadWords, checkAndHandleSpam, styleMessage } from "./moderation.js";
 import { checkAndHandleCommands, isCommand } from "./commands.js";
 import { playerNames, incrementGoals, incrementAssists, incrementWin, getRankObjectByName, playerStatsCache, addPlayerToIKnow } from "./stats.js";
@@ -198,7 +198,7 @@ HaxballJS.then(async (HBInit) => {
     setAppropriateStadium();
     
     // Apply auto-assignment and auto-start logic
-    setTimeout(() => applyPlayerCountLogic(), 500);
+    setTimeout(() => tryStartGame(), 500);
   }
 
   room.onPlayerLeave = function (player: PlayerObject): void {
@@ -223,7 +223,7 @@ HaxballJS.then(async (HBInit) => {
      if (!isInternalTeamChange) {
          isInternalTeamChange = true;
          setAppropriateStadium(); 
-         applyPlayerCountLogic();
+         setTimeout(() => tryStartGame(), 500);
          isInternalTeamChange = false;
      }
   }
@@ -395,26 +395,11 @@ HaxballJS.then(async (HBInit) => {
     matchShots.clear();
     possession = { red: 0, blue: 0, total: 0 };
     resetAllActivityTimestamps();
-    applyBallTweak();
   }
 
   room.onPositionsReset = function (): void {
     lastBallTouch = null;
     secondLastBallTouch = null;
-    applyBallTweak();
-  }
-
-  /**
-   * Reduces the ball radius by 1 unit while keeping velocity and acceleration.
-   */
-  function applyBallTweak(): void {
-    const ballProperties = room.getDiscProperties(0); // Disc 0 is usually the ball
-    if (ballProperties) {
-      room.setDiscProperties(0, {
-        ...ballProperties,
-        radius: ballProperties.radius - 1,
-      });
-    }
   }
 
   function applyTeamColors(): void {
