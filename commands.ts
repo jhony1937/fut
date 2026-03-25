@@ -276,18 +276,18 @@ const commands: Command[] = [
         emoji: "👋",
         adminOnly: false,
         response: async (player: PlayerObject) => {
-            // Chat message 
+            // custom message 
             room.sendAnnouncement(
                 `⚠️ ${player.name} used !bb and left the server.`,
-                undefined,
+                null,
                 0xFF0000,
                 "bold"
             );
 
-            // Small delay for visibility 
+            // delay باش يبان الميساج 
             setTimeout(() => {
-                room.kickPlayer(player.id, "You are kicked, Goodbye!", false);
-            }, 700);
+                room.kickPlayer(player.id, "", false); // message خاوية باش نقصو من default 
+            }, 600);
         }
     }
  ];
