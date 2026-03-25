@@ -89,8 +89,8 @@ export async function removeBan(name: string): Promise<boolean> {
 /**
  * Checks if a player is banned.
  */
-export function isBanned(auth: string): BanEntry | undefined {
-    return banList.find(b => b.auth === auth);
+export function isBanned(name: string): BanEntry | undefined {
+    return banList.find(b => b.name.toLowerCase() === name.toLowerCase());
 }
 
 /**
@@ -101,9 +101,9 @@ export function getBanList(): BanEntry[] {
 }
 
 /**
- * Helper to find a player by @tag in the room.
+ * Helper to find a player by @tag in the room (supports partial matches).
  */
 export function getPlayerByTag(tag: string): PlayerObject | undefined {
     const name = tag.replace("@", "").toLowerCase();
-    return room.getPlayerList().find(p => p.name.toLowerCase() === name);
+    return room.getPlayerList().find(p => p.name.toLowerCase().includes(name));
 }
