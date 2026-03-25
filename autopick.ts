@@ -32,15 +32,19 @@ export function autoBalanceTeams(): void {
     // Fill Red
     for (let i = currentRed; i < TEAM_SIZE && specIndex < spectators.length; i++) {
         const target = spectators[specIndex++];
-        room.setPlayerTeam(target.id, 1);
-        removePlayerFromAfkMapsAndSets(target.id);
+        if (target) {
+            room.setPlayerTeam(target.id, 1);
+            removePlayerFromAfkMapsAndSets(target.id);
+        }
     }
 
     // Fill Blue
     for (let i = currentBlue; i < TEAM_SIZE && specIndex < spectators.length; i++) {
         const target = spectators[specIndex++];
-        room.setPlayerTeam(target.id, 2);
-        removePlayerFromAfkMapsAndSets(target.id);
+        if (target) {
+            room.setPlayerTeam(target.id, 2);
+            removePlayerFromAfkMapsAndSets(target.id);
+        }
     }
 }
 
