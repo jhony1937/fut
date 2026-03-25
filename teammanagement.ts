@@ -60,34 +60,39 @@ export function applyPlayerCountLogic(): void {
 
 /**
  * Attempts to start the game based on current player distribution.
- * - If 1 player: Move to Red and start after 300ms.
+ * - If 1 player: Move to Red and restart game after 300ms.
  * - If balanced teams (>0): Start after 300ms.
  */
 export function tryStartGame(): void {
-    const all = room.getPlayerList();
+    const players = room.getPlayerList();
 
-    if (all.length === 1) {
-        const p = all[0];
+    // لاعب واحد فقط
+    if (players.length === 1) {
+        const p = players[0];
         if (p) {
+            // دخلو red
             if (p.team === 0) {
-                room.setPlayerTeam(p.id, 1); // Move to Red
+                room.setPlayerTeam(p.id, 1);
             }
 
+            // restart باش يتحرك
             setTimeout(() => {
-                const currentScores = room.getScores();
-                if (currentScores === null) room.startGame();
+                room.stopGame();
+                room.startGame();
             }, 300);
         }
         return;
     }
 
-    const red = all.filter(p => p.team === 1).length;
-    const blue = all.filter(p => p.team === 2).length;
+    // الحالات العادية
+    const red = players.filter(p => p.team === 1).length;
+    const blue = players.filter(p => p.team === 2).length;
 
     if (red === blue && red > 0) {
         setTimeout(() => {
-            const currentScores = room.getScores();
-            if (currentScores === null) room.startGame();
+            if (room.getScores() === null) {
+                room.startGame();
+            }
         }, 300);
     }
 }
